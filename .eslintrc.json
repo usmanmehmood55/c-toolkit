@@ -1,0 +1,32 @@
+{
+    "env": {
+        "browser" : false,
+        "commonjs": true,
+        "es6"     : true,
+        "node"    : true,
+        "mocha"   : true
+    },
+    "parserOptions": {
+        "ecmaVersion" : 2018,
+        "ecmaFeatures": {
+            "jsx": true
+        },
+        "sourceType": "module"
+    },
+    "rules": {
+        "no-const-assign"     : "warn",
+        "no-this-before-super": "warn",
+        "no-undef"            : "warn",
+        "no-unreachable"      : "warn",
+        "no-unused-vars"      : "warn",
+        "constructor-super"   : "warn",
+        "valid-typeof"        : "warn",
+
+        "brace-style": ["warn", "allman"],        // Enforce "one true brace" style
+        "camelcase"  : "off",                     // Allow camelCase (C-style is often snake_case)
+        "curly"      : ["error", "multi-line"],   // Require curly braces for multi-line blocks
+        "indent"     : ["error", 4],              // Use 4 spaces for indentation (or adjust to your preference)
+        "semi"       : ["error", "always"],       // Require semicolons at the end of statements
+        "no-tabs"    : "error"                    // Disallow tabs, as they are not C-style
+    }
+}
