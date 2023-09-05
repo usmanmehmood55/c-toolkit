@@ -1,0 +1,62 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+
+      - name: Install vsce
+        run: npm install -g vsce
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Package Extension
+        run: vsce package
+
+      - name: Get package information
+        id: package_info
+        run: |
+          echo "::set-output name=version::$(node -p "require('./package.json').version")"
+          echo "::set-output name=name::$(node -p "require('./package.json').name")"
+          echo "::set-output name=publisher::$(node -p "require('./package.json').publisher")"
+          echo "::set-output name=extensionName::$(node -p "require('./package.json').extensionName")"
+
+      - name: Rename .vsix File
+        run: mv ./${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.vsix \
+             ./${{ steps.package_info.outputs.publisher }}.${{ steps.package_info.outputs.extensionName }}-${{ steps.package_info.outputs.version }}.vsix
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ steps.package_info.outputs.version }}
+          release_name: Release ${{ steps.package_info.outputs.version }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.package_info.outputs.publisher }}.${{ steps.package_info.outputs.extensionName }}-${{ steps.package_info.outputs.version }}.vsix
+          asset_name: ${{ steps.package_info.outputs.publisher }}.${{ steps.package_info.outputs.extensionName }}-${{ steps.package_info.outputs.version }}.vsix
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
