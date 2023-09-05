@@ -33,11 +33,6 @@ jobs:
           echo "::set-output name=version::$(node -p "require('./package.json').version")"
           echo "::set-output name=name::$(node -p "require('./package.json').name")"
           echo "::set-output name=publisher::$(node -p "require('./package.json').publisher")"
-          echo "::set-output name=extensionName::$(node -p "require('./package.json').extensionName")"
-
-      - name: Rename .vsix File
-        run: mv ./${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.vsix \
-             ./${{ steps.package_info.outputs.publisher }}.${{ steps.package_info.outputs.extensionName }}-${{ steps.package_info.outputs.version }}.vsix
 
       - name: Create Release
         id: create_release
@@ -46,7 +41,7 @@ jobs:
           tag_name: ${{ steps.package_info.outputs.version }}
           release_name: Release ${{ steps.package_info.outputs.version }}
           draft: false
-          prerelease: false
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
@@ -55,8 +50,8 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ steps.package_info.outputs.publisher }}.${{ steps.package_info.outputs.extensionName }}-${{ steps.package_info.outputs.version }}.vsix
-          asset_name: ${{ steps.package_info.outputs.publisher }}.${{ steps.package_info.outputs.extensionName }}-${{ steps.package_info.outputs.version }}.vsix
+          asset_path: ./${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.vsix
+          asset_name: ${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.vsix
           asset_content_type: application/octet-stream
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
