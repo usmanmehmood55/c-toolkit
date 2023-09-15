@@ -7,6 +7,43 @@ const CMAKE_NAME = 'cmake';
 const NINJA_NAME = 'ninja';
 
 /**
+ * Enum for OS types
+ */
+const OsTypes = 
+{
+    WINDOWS : 'windows',
+    LINUX   : 'linux',
+    MACOS   : 'macos',
+};
+
+/**
+ * Enum for CPU architectures
+ */
+const CpuArch = 
+{
+    X64   : 'x64',
+    X86   : 'x86',
+    ARM32 : 'arm32',
+    ARM64 : 'arm64',
+};
+
+/**
+ * Contains the OS type and CPU architecture
+ */
+class SystemInfo
+{
+    /**
+     * @param {string} osType
+     * @param {string} cpuArch
+     */
+    constructor(osType, cpuArch) 
+    {
+        this.osType  = osType;
+        this.cpuArch = cpuArch;
+    }
+}
+
+/**
  * Checks for the presence of a program by using the --version thingy
  * 
  * @param {string} toolName Name of the tool to search for
@@ -49,6 +86,27 @@ async function detectTool(toolName)
     {
         // vscode.window.showInformationMessage(`${toolName} found.`);
     }
+}
+
+/**
+ * Checks the OS type and CPU architecture
+ * 
+ * @returns {Promise<SystemInfo>} true if the tool is present in PATH
+ */
+async function checkOs()
+{
+    return new SystemInfo(OsTypes.LINUX, CpuArch.ARM64);
+}
+
+/**
+ * Downloads the appropriate tool
+ * 
+ * @param {SystemInfo} systemInfo 
+ * @param {string} toolName Name of the tool to search for
+ */
+async function downloadTool(systemInfo, toolName)
+{
+    throw new Error("Not implemented");
 }
 
 /**
