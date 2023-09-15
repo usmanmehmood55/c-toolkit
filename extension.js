@@ -1,7 +1,7 @@
 const vscode                 = require('vscode');
 const CreateComponentCommand = require('./source/ComponentManager');
 const buttonActions          = require('./source/ButtonActions');
-const CreateProjectCommand = require('./source/ProjectManager');
+const CreateProjectCommand   = require('./source/ProjectManager');
 
 const BuildTypes = 
 {
