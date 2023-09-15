@@ -2,6 +2,7 @@ const vscode                 = require('vscode');
 const CreateComponentCommand = require('./source/ComponentManager');
 const buttonActions          = require('./source/ButtonActions');
 const CreateProjectCommand   = require('./source/ProjectManager');
+const ToolsManager           = require('./source/ToolsManager');
 
 const BuildTypes = 
 {
@@ -32,6 +33,7 @@ function activate(context)
 
     CreateComponentCommand(context);
     CreateProjectCommand(context);
+    ToolsManager.searchForTools();
 
     vscode.window.onDidChangeActiveColorTheme(e => // eslint-disable-line no-unused-vars
     {
