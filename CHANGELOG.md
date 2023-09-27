@@ -1,6 +1,6 @@
 # Change Log
 
-## [v0.0.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/v0.0.2)
+## [v0.0.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.0.2)
 
 ### Features
 
@@ -19,11 +19,14 @@
 
 ### Known Issues
 
+- GDB does not work on Apple's Arm64 architecture, so for that LLDB support will
+  be added. For now an error message is popped up is the user tries to install
+  GDB on MacOS.
 - Extension doesn't activate when a folder isn't open in the workspace
 - Creates a new component even if no project is present
 - Unknown behaviour for multiple folders in the same workspace
 
-## [v0.0.1](https://github.com/usmanmehmood55/c-toolkit/releases/tag/v0.0.1)
+## [v0.0.1](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.0.1)
 
 ### Features
 
