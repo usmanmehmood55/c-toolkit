@@ -283,19 +283,61 @@ function askForRestart(restartReason)
 /**
  * Initiates the installation of each tool one by one. After the installation of all tools,
  * it asks the user if they want to restart VSCode. If allowed, it restarts VSCode. 
+ * If any tools fail to install, it notifies the user about those tools.
  * 
  * @param {string[]} tools An array containing names of the tools to install.
  */
-function InstallMultipleTools(tools)
+async function InstallMultipleTools(tools)
 {
     let installedTools = [];
+    let failedTools = [];
+
     for (let tool of tools)
     {
-        if (installTool(tool)) installedTools.push(tool);
+        try
+        {
+            if ((tool === BuildTools.GDB) && (checkOs() === OsTypes.MACOS))
+            {
+                throw new Error('GDB will not be used for MacOS, instead LLDB support will be added.');
+            }
+
+            let selection = await installTool(tool);
+            if (selection === true)
+            {
+                installedTools.push(tool);
+            }
+            else
+            {
+                throw new Error('This line should not have executed');
+            }
+        }
+        catch (error)
+        {
+            failedTools.push([tool, error.message]);
+        }
     }
 
-    const installedToolList = formatList(installedTools);
-    askForRestart(`${installedToolList} installation completed`);
+    /**
+     * For now, this strange logic handles the failed installation messages thrown by multiple failed
+     * installations, while also showing the user why the individual installation failed. The output
+     * is not that well formatted, but it is good enough for now.
+     */
+    if (failedTools.length > 0)
+    {
+        let failArray = [];
+        for (let eachError of failedTools)
+        {
+            failArray.push(eachError.join(': '));
+        }
+        const failedToolList = formatList(failArray);
+        vscode.window.showErrorMessage(`Failed to install: ${failedToolList}. Please install manually.`);
+    }
+
+    if (installedTools.length > 0)
+    {
+        const installedToolList = formatList(installedTools);
+        askForRestart(`${installedToolList} installation completed`);
+    }
 }
 
 /**
