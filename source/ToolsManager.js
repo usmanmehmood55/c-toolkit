@@ -53,6 +53,20 @@ function checkOs()
 }
 
 /**
+ * 
+ * @param {string[]} items joins an array of strings in a comma separated human-readable single
+ * string.
+ * 
+ * @returns 
+ */
+function formatList(items)
+{
+    if (items.length === 0) return '';
+    if (items.length === 1) return items[0];
+    return items.slice(0, items.length - 1).join(', ') + ' and ' + items[items.length - 1];
+}
+
+/**
  * Checks for the presence of a program by using the --version thingy
  * 
  * @param {string} toolName Name of the tool to search for
@@ -112,7 +126,7 @@ const installScoop = () =>
             }
             else
             {
-                resolve('Scoop was installed successfully.');
+                resolve('Scoop was installed successfully');
             }
         });
     });
@@ -124,22 +138,35 @@ const installScoop = () =>
  */
 async function askAndInstallScoop()
 {
-    let toolName = BuildTools.SCOOP;
-    vscode.window.showWarningMessage(`Would you like to install ${toolName}?`, 'Yes', 'No').then(selection =>
+    const toolName = BuildTools.SCOOP;
+    vscode.window.showWarningMessage(`${toolName} not found. Would you like to install?`, 'Yes', 'No').then(selection =>
     {
         if (selection === 'Yes')
         {
-            installScoop().then(successMessage =>
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: `Installing ${toolName}`,
+                cancellable: false
+            }, async (progress, token) =>
             {
-                askForRestart(successMessage);
-            }).catch(error =>
-            {
-                vscode.window.showErrorMessage(error.message);
+                progress.report({ message: `In Progress...` });
+                try
+                {
+                    await installScoop();
+                    progress.report({ message: `Finalizing...` });
+                    askForRestart('Scoop was installed successfully');
+                }
+                catch (error)
+                {
+                    progress.report({ message: `Failed!` });
+                    vscode.window.showErrorMessage(error.message);
+                }
+                progress.report({ message: `Complete` });
             });
         }
         else if (selection === 'No')
         {
-            // do nothing
+            vscode.window.showWarningMessage('Build tools for Windows would have to be installed manually.');
         }
     });
 }
@@ -202,7 +229,7 @@ function installTool(toolName)
     }, async (progress, token) =>
     {
         let isInstalled = false;
-        progress.report({ message: `Starting...` });
+        progress.report({ message: `In Progress...` });
 
         try
         {
@@ -268,7 +295,7 @@ function InstallMultipleTools(tools)
         if (installTool(tool)) installedTools.push(tool);
     }
 
-    const installedToolList = installedTools.join(', ');
+    const installedToolList = formatList(installedTools);
     askForRestart(`${installedToolList} installation completed`);
 }
 
@@ -280,8 +307,8 @@ function InstallMultipleTools(tools)
  */
 async function askAndInstallMultipleTools(tools)
 {
-    const toolList = tools.join(', ');
-    vscode.window.showWarningMessage(`Would you like to install ${toolList}?`, 'Yes', 'No').then(async selection =>
+    const toolList = formatList(tools);
+    vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No').then(async selection =>
     {
         if (selection === 'Yes')
         {
@@ -289,31 +316,9 @@ async function askAndInstallMultipleTools(tools)
         }
         else if (selection === 'No')
         {
-            // do nothing
+            vscode.window.showWarningMessage(`${toolList} would have to be installed manually.`);
         }
     });
-}
-
-/**
- * Checks for the presence of a specified tool in the system's PATH.
- * If the tool is not found, it displays an error message.
- * 
- * @param {string} toolName The name of the tool to detect.
- * @returns {Promise<boolean>} A promise that resolves with true if the tool is detected, and false otherwise.
- */
-async function detectTool(toolName)
-{
-    let toolFound = await isToolInPath(toolName);
-    if (toolFound === false)
-    {
-        vscode.window.showErrorMessage(`${toolName} not found.`);
-    }
-    else
-    {
-        // vscode.window.showInformationMessage(`${toolName} found.`);
-    }
-
-    return toolFound;
 }
 
 /**
@@ -326,7 +331,7 @@ async function searchForTools()
 
     if (checkOs() === OsTypes.WINDOWS)
     {
-        let scoop = await detectTool(BuildTools.SCOOP);
+        let scoop = await isToolInPath(BuildTools.SCOOP);
         if (scoop === false)
         {
             askAndInstallScoop();
@@ -336,11 +341,11 @@ async function searchForTools()
 
     let results = await Promise.all
     ([
-        detectTool(BuildTools.GCC),
-        detectTool(BuildTools.GDB),
-        detectTool(BuildTools.CMAKE),
-        detectTool(BuildTools.NINJA),
-        detectTool(BuildTools.MAKE)
+        isToolInPath(BuildTools.GCC),
+        isToolInPath(BuildTools.GDB),
+        isToolInPath(BuildTools.CMAKE),
+        isToolInPath(BuildTools.NINJA),
+        isToolInPath(BuildTools.MAKE)
     ]);
 
     const tools = [BuildTools.GCC, BuildTools.GDB, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE];
