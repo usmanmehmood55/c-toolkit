@@ -53,11 +53,10 @@ function checkOs()
 }
 
 /**
- * 
- * @param {string[]} items joins an array of strings in a comma separated human-readable single
- * string.
- * 
- * @returns 
+ * Formats a list of items into a human-friendly string.
+ *
+ * @param {string[]} items The list of items to format.
+ * @returns {string} A string in the format "item1, item2, ... and lastItem".
  */
 function formatList(items)
 {
@@ -300,8 +299,8 @@ function InstallMultipleTools(tools)
 }
 
 /**
- * Prompts the user for installing a list of tools. If the user agrees, it calls the InstallMultipleTools()
- * function.
+ * Prompts the user for installing a list of tools. If the user agrees, initiates the installation for each.
+ * Displays a warning if the user declines, indicating the tools need to be manually installed.
  * 
  * @param {string[]} tools An array containing names of the tools to install.
  */
@@ -322,8 +321,8 @@ async function askAndInstallMultipleTools(tools)
 }
 
 /**
- * Checks for the presence of a set of predefined tools in the system.
- * For missing tools, it prompts the user for their installation.
+ * Prompts the user for installing Scoop. If the user agrees, initiates the installation.
+ * After installation, it either displays a success message or an error message based on the outcome.
  */
 async function searchForTools()
 {

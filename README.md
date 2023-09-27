@@ -6,20 +6,19 @@ using CMake.
 ## Features
 
 - Status bar buttons.
+- Checks for and installs missing build tools
 - Command for creating a new project.
 - Command for generating a new component (library).
-- Checks for and installs missing build tools
 
 ## Requirements
 
-The following software must be installed for this extension to work properly.
+The following tools are required by extension to work properly. If they are not
+installed, the extension attempts to install them by itself.
 
 1. GCC
 2. GDB
 3. CMake
 4. Ninja
-
-All 4 of these can be installed via [MSYS2](https://www.msys2.org/).
 
 ## Status Bar Buttons
 
@@ -32,6 +31,30 @@ Seven status bar buttons have been implemented to:
 - Debug
 - Test
 - Debug Test
+
+## Missing Build Tools
+
+The extension checks if the required build tools are installed by trying to
+execute `tool --version`. If the tool is not installed or is not included in
+the `PATH`, the error is detected by the extension and it then offers to
+install the missing tools.
+
+![Asks the user for installation of tools](images/tools_ask_installation.PNG)
+
+Once installation of the missing tools is complete, it asks the user if VSCode
+can be restarted.
+
+![Tools are installed](images/tools_installed.PNG)
+
+The build tools are installed via these package managers:
+
+- Advance Package Tool (APT) for Linux.
+- Homebrew for MacOS.
+- Scoop for Windows.
+
+Since Windows does not come pre-installed with Scoop, the ability to install
+Scoop itself has also been added. Once the tools are installed, the user is
+informed, and asked to close and re-open VS Code.
 
 ## Project Generation
 
@@ -90,21 +113,6 @@ A component would have the following files
 - CMakeLists.txt
 
 It would also modify the root CMakeLists.txt to add the new component
-
-## Missing Build Tools
-
-The extension checks if the required build tools are installed by trying to
-execute `tool --version`. If the tool is not installed or is not included in
-the `PATH`, the error is detected by the extension and it then offers to
-install the missing tools using these package managers:
-
-- Advance Package Tool (APT) for Linux.
-- Homebrew for MacOS.
-- Scoop for Windows.
-
-Since Windows does not come pre-installed with Scoop, the ability to install
-Scoop itself has also been added. Once the tools are installed, the user is
-informed, and asked to close and re-open VS Code.
 
 ## Setup
 

@@ -6,8 +6,11 @@
 
 - Build tools detection - checks for missing build tools and notifies the user.
 - Build tool installation - offers to install the missing tools using an
-  appropriate package manager.
-  
+  appropriate package manager:
+  - Advance Package Tool (APT) for Linux.
+  - Homebrew for MacOS.
+  - Scoop for Windows.
+
 ### Improvements
 
 - Root CMakeLists.txt has appropriate optimization flags for Release, Debug and
