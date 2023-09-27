@@ -24,8 +24,20 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Bump minor version
+        run: npm version minor -m "Bump version to %s"
+
+      - name: Push updated package.json
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "github-actions@github.com"
+          git push
+
       - name: Package Extension
         run: vsce package
+
+      - name: Publish to Marketplace
+        run: vsce publish -p ${{ secrets.VSCE_PUBLISH_PAT }}
 
       - name: Get package information
         id: package_info
