@@ -1,7 +1,6 @@
-const vscode        = require('vscode');
-const child_process = require('child_process');
-const os            = require('os');
-const { spawn }     = require('child_process');
+const vscode = require('vscode');
+const os     = require('os');
+const { exec, spawn, spawnSync } = require('child_process');
 
 /**
  * Enum for build tools required
@@ -24,6 +23,13 @@ const OsTypes =
     WINDOWS : 'windows',
     LINUX   : 'linux',
     MACOS   : 'macos',
+};
+
+const PackageManagers = 
+{
+    [OsTypes.WINDOWS] : 'scoop',
+    [OsTypes.LINUX]   : 'apt-get',
+    [OsTypes.MACOS]   : 'brew',
 };
 
 /**
@@ -58,7 +64,7 @@ async function isToolInPath(toolName)
     toolName = toolName === BuildTools.SCOOP ? `${os.homedir()}\\scoop\\shims\\scoop` : toolName;
     return new Promise((resolve, reject) => 
     {
-        child_process.exec(`${toolName} --version`, (error, stdout, stderr) => 
+        exec(`${toolName} --version`, (error, stdout, stderr) => 
         {
             if (error) 
             {
@@ -106,7 +112,7 @@ const installScoop = () =>
             }
             else
             {
-                resolve('Scoop was installed successfully. Please close and reopen VSCode now.');
+                resolve('Scoop was installed successfully.');
             }
         });
     });
@@ -125,7 +131,7 @@ async function askAndInstallScoop()
         {
             installScoop().then(successMessage =>
             {
-                vscode.window.showInformationMessage(successMessage);
+                askForRestart(successMessage);
             }).catch(error =>
             {
                 vscode.window.showErrorMessage(error.message);
@@ -144,105 +150,142 @@ async function askAndInstallScoop()
  * @param {string} command The command to execute.
  * @param {string[]} args The arguments for the command.
  * 
- * @returns {Promise<string>} A promise that resolves with a success
- * message if the command executes successfully, and rejects with an 
- * error if it fails.
+ * @returns {string} Stdout string if it passes.
  */
-function execCommand(command, args) 
+function execCommand(command, args)
 {
-    return new Promise((resolve, reject) => 
+    if (command === 'scoop')
     {
-        const process = spawn(command, args);
+        command = 'cmd';
+        args = ['/c', 'scoop', ...args];
+    }
 
-        process.stdout.on('data', (data) => 
-        {
-            console.log(`stdout: ${data}`);
-        });
+    console.log(`Executing: ${command} ${args.join(' ')}`);
+    const process = spawnSync(command, args);
 
-        process.stderr.on('data', (data) => 
-        {
-            console.error(`stderr: ${data}`);
-        });
+    // Convert Buffer to String
+    const stdout = process.stdout ? process.stdout.toString() : '';
+    const stderr = process.stderr ? process.stderr.toString() : '';
 
-        process.on('close', (code) => 
+    // Log the outputs
+    if (stdout)
+    {
+        console.log(`stdout: ${stdout}`);
+    }
+
+    if (stderr)
+    {
+        console.error(`stderr: ${stderr}`);
+    }
+
+    if (process.status !== 0)
+    {
+        throw new Error(`Command failed with code ${process.status}`);
+    }
+
+    return stdout;
+}
+
+/**
+ * Initiates the installation of a specified tool by using the appropriate tool manager.
+ * 
+ * @param {string} toolName The name of the tool to install.
+ * 
+ * @returns {Thenable<boolean>} I don't know what this is. I miss C where bool is literally an int.
+ */
+function installTool(toolName)
+{
+    return vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `Installing ${toolName}`,
+        cancellable: false
+    }, async (progress, token) =>
+    {
+        let isInstalled = false;
+        progress.report({ message: `Starting...` });
+
+        try
         {
-            if (code !== 0) 
-            {
-                reject(new Error(`Command failed with code ${code}`));
-            } 
-            else 
-            {
-                resolve(`Command executed successfully.`);
-            }
-        });
+            // Scoop installation has its own function.
+            if (toolName === BuildTools.SCOOP) throw new Error("Scoop is not supposed to be installed from installTool() function");
+
+            let installCommand = PackageManagers[checkOs()] || null;
+            if (installCommand === null) throw new Error('Unsupported OS type');
+
+            /**
+             * Since all 3 package managers use the same install command. If in future a
+             * package manager changes, this logic would have to be changed as well.
+             */
+            const installArgs = ['install', toolName];
+
+            // this has not been tested yet.
+            if (installCommand === 'apt-get') installArgs.unshift('sudo');
+
+            execCommand(installCommand, installArgs);
+            isInstalled = true;
+            progress.report({ message: `Finalizing...` });
+        }
+        catch (error)
+        {
+            throw new Error(`Failed to install ${toolName}: ${error.message}`);
+        }
+
+        return isInstalled;
     });
 }
 
 /**
- * Initiates the installation of a specified tool. This is a placeholder function and needs a real implementation.
+ * Asks the user to restart VSCode. If user selects yes, it restarts.
  * 
- * @param {string} toolName The name of the tool to install.
+ * @param {string} restartReason Reason for restart.
  */
-async function installTool(toolName)
+function askForRestart(restartReason)
 {
-    vscode.window.showInformationMessage(`meep moop beep boop, installing ${toolName}`);
-
-    if (toolName === BuildTools.SCOOP)
+    vscode.window.showInformationMessage(`${restartReason}. Please restart VSCode.`, 'Yes', 'No').then(async (selection) =>
     {
-        const errString = "Scoop is not supposed to be installed from installTool() function";
-        vscode.window.showErrorMessage(errString);
-        console.log(errString);
-        throw new Error(errString);
-    }
-
-    let installCommand = null;
-    switch (checkOs())
-    {
-    case OsTypes.WINDOWS:
-        installCommand = 'scoop';
-        break;
-    case OsTypes.LINUX:
-        installCommand = 'apt-get';
-        break;
-    case OsTypes.MACOS:
-        installCommand = 'brew';
-        break;
-    default:
-        installCommand = null;
-        break;
-    }
-
-    if (installCommand === null) throw new Error('Unsupported OS type');
-
-    const installArgs = ['install', toolName];
-
-    if (installCommand === 'apt-get')
-    {
-        installArgs.unshift('sudo');
-    }
-
-    return execCommand(installCommand, installArgs);
+        if (selection === 'Yes')
+        {
+            vscode.commands.executeCommand('workbench.action.reloadWindow');
+        }
+        else if (selection === 'No')
+        {
+            // maybe show a warning message, but I think it is unnecessary
+        }
+    });
 }
 
 /**
- * Prompts the user for installing a list of tools. If the user agrees, initiates the installation of each tool one by one.
- * After the installation of all tools, displays a success message.
+ * Initiates the installation of each tool one by one. After the installation of all tools,
+ * it asks the user if they want to restart VSCode. If allowed, it restarts VSCode. 
  * 
  * @param {string[]} tools An array containing names of the tools to install.
  */
-async function askAndInstallMultiple(tools)
+function InstallMultipleTools(tools)
+{
+    let installedTools = [];
+    for (let tool of tools)
+    {
+        if (installTool(tool)) installedTools.push(tool);
+    }
+
+    const installedToolList = installedTools.join(', ');
+    askForRestart(`${installedToolList} installation completed`);
+}
+
+/**
+ * Prompts the user for installing a list of tools. If the user agrees, it calls the InstallMultipleTools()
+ * function.
+ * 
+ * @param {string[]} tools An array containing names of the tools to install.
+ */
+async function askAndInstallMultipleTools(tools)
 {
     const toolList = tools.join(', ');
     vscode.window.showWarningMessage(`Would you like to install ${toolList}?`, 'Yes', 'No').then(async selection =>
     {
         if (selection === 'Yes')
         {
-            for (let tool of tools)
-            {
-                await installTool(tool);
-            }
-
-            vscode.window.showInformationMessage(`${toolList} installation completed. Please restart VSCode. (This is a fake message, it was not installed.)`);
+            InstallMultipleTools(tools);
         }
         else if (selection === 'No')
         {
@@ -312,7 +355,7 @@ async function searchForTools()
 
     if (missingTools.length > 0)
     {
-        askAndInstallMultiple(missingTools);
+        askAndInstallMultipleTools(missingTools);
     }
 }
 
