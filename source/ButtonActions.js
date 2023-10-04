@@ -118,9 +118,11 @@ async function invokeBuild(buildType)
         return;
     }
 
-    let _buildType = buildType === "Test" ? "Debug" : buildType;
-
-    let execString = `cmake -GNinja -Bbuild -DCMAKE_BUILD_TYPE=${_buildType} ; ninja -C build ; touch ${BUILD_DIR_PATH}/z_build_complete_marker`;
+    /**
+     * The z_build_complete_marker is added in the end to give an indication of build process being complete.
+     * I could not find any other way of signalling to the extension about the completion of build
+     */
+    let execString = `cmake -GNinja -Bbuild -DCMAKE_BUILD_TYPE=${buildType} ; ninja -C build ; touch ${BUILD_DIR_PATH}/z_build_complete_marker`;
 
     // Try to find an existing terminal named "Build Terminal"
     let terminal = vscode.window.terminals.find(t => t.name === BUILD_TERMINAL_NAME);
