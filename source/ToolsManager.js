@@ -253,7 +253,7 @@ function installTool(toolName)
         }
         catch (error)
         {
-            throw new Error(`Failed to install ${toolName}: ${error.message}`);
+            throw new Error(error.message);
         }
 
         return isInstalled;
@@ -289,7 +289,10 @@ function askForRestart(restartReason)
  */
 async function InstallMultipleTools(tools)
 {
+    /** @type {string[]} */
     let installedTools = [];
+
+    /** @type {Array<{tool: string, failReason: string}>} */
     let failedTools = [];
 
     for (let tool of tools)
@@ -313,21 +316,31 @@ async function InstallMultipleTools(tools)
         }
         catch (error)
         {
-            failedTools.push([tool, error.message]);
+            let failReason = `${error.message}`;
+            failedTools.push({tool, failReason});
         }
     }
 
-    /**
-     * For now, this strange logic handles the failed installation messages thrown by multiple failed
-     * installations, while also showing the user why the individual installation failed. The output
-     * is not that well formatted, but it is good enough for now.
-     */
+    processInstallationOutputs(installedTools, failedTools);
+}
+
+/**
+ * For now, this strange logic handles the failed installation messages thrown by multiple failed
+ * installations, while also showing the user why the individual installation failed.
+ * 
+ * @param {string[]} installedTools
+ * @param {Array<{tool: string, failReason: string}>} failedTools
+ */
+function processInstallationOutputs(installedTools, failedTools)
+{
     if (failedTools.length > 0)
     {
+        /** @type {string[]} */
         let failArray = [];
         for (let eachError of failedTools)
         {
-            failArray.push(eachError.join(': '));
+            let errorStr = `${eachError.tool} (${eachError.failReason})`;
+            failArray.push(errorStr);
         }
         const failedToolList = formatList(failArray);
         vscode.window.showErrorMessage(`Failed to install: ${failedToolList}. Please install manually.`);
@@ -368,6 +381,7 @@ async function askAndInstallMultipleTools(tools)
  */
 async function searchForTools()
 {
+    /** @type {string[]} */
     let missingTools = [];
 
     if (checkOs() === OsTypes.WINDOWS)

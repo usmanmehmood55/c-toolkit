@@ -63,7 +63,6 @@ function DoxygenHeader(fileName, fileType, prefix)
         " * @brief     your library's description"                      + "\n" +
         " * @version   0.1"                                             + "\n" +
         ` * @date      ${new Date().toISOString().split('T')[0]}`       + "\n" +
-        " * "                                                           + "\n" +
         ` * @copyright ${new Date().getFullYear()}, ${companyName}`     + "\n" +
         " */";
 
@@ -187,34 +186,39 @@ function ProjectCmake()
 {
     let content = 
 
-    "# Set the minimum CMake version"                                      + "\n" +
-    "cmake_minimum_required(VERSION 3.10)"                                 + "\n" +
-    ""                                                                     + "\n" +
-    "get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)"  + "\n" +
-    "project(${PROJECT_NAME} VERSION 0.1 LANGUAGES C)"                     + "\n" +
-    ""                                                                     + "\n" +
-    "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)"                                + "\n" +
-    ""                                                                     + "\n" +
-    "set(CMAKE_C_FLAGS_RELEASE \"-O3\")"                                   + "\n" +
-    "set(CMAKE_C_FLAGS_DEBUG   \"-O0 -g3\")"                               + "\n" +
-    "set(CMAKE_C_FLAGS_TEST    \"-O0 -g3 -D__test_build__ --coverage\")"   + "\n" +
-    ""                                                                     + "\n" +
-    "add_executable(${PROJECT_NAME} main.c)"                               + "\n" +
-    ""                                                                     + "\n" +
-    "# List of components"                                                 + "\n" +
-    "set(COMPONENTS "                                                      + "\n" +
-    "  )"                                                                  + "\n" +
-    ""                                                                     + "\n" +
-    "# Add component subdirectories using loop"                            + "\n" +
-    "foreach(COMPONENT ${COMPONENTS})"                                     + "\n" +
-    "    add_subdirectory(components/${COMPONENT})"                        + "\n" +
-    "endforeach()"                                                         + "\n" +
-    ""                                                                     + "\n" +
-    "if(CMAKE_BUILD_TYPE MATCHES Test)"                                    + "\n" +
-    "    target_link_libraries(${PROJECT_NAME} gcov)"                      + "\n" +
-    "endif()"                                                              + "\n" +
-    "add_custom_command(TARGET ${PROJECT_NAME} "                           + "\n" +
-    "    POST_BUILD COMMAND size $<TARGET_FILE:${PROJECT_NAME}>)"          + "\n";
+    "cmake_minimum_required(VERSION 3.10)"                                                + "\n" +
+    ""                                                                                    + "\n" +
+    "# Setting the project name based on the root folder name"                            + "\n" +
+    "get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)"                 + "\n" +
+    "project(${PROJECT_NAME} VERSION 0.1 LANGUAGES C)"                                    + "\n" +
+    ""                                                                                    + "\n" +
+    "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)"                                               + "\n" +
+    ""                                                                                    + "\n" +
+    "set(CMAKE_C_FLAGS \"-Wall -Wextra -std=c11\")"                                       + '\n' +
+    ""                                                                                    + "\n" +
+    "set(CMAKE_C_FLAGS_RELEASE \"${CMAKE_C_FLAGS} -O2\")"                                 + "\n" +
+    "set(CMAKE_C_FLAGS_DEBUG   \"${CMAKE_C_FLAGS} -O0 -g3\")"                             + "\n" +
+    "set(CMAKE_C_FLAGS_TEST    \"${CMAKE_C_FLAGS} -O0 -g3 -D__test_build__ --coverage\")" + "\n" +
+    ""                                                                                    + "\n" +
+    "add_executable(${PROJECT_NAME} main.c)"                                              + "\n" +
+    ""                                                                                    + "\n" +
+    "# List of components"                                                                + "\n" +
+    "set(COMPONENTS "                                                                     + "\n" +
+    "  )"                                                                                 + "\n" +
+    ""                                                                                    + "\n" +
+    "# Add component subdirectories using loop"                                           + "\n" +
+    "foreach(COMPONENT ${COMPONENTS})"                                                    + "\n" +
+    "    add_subdirectory(components/${COMPONENT})"                                       + "\n" +
+    "endforeach()"                                                                        + "\n" +
+    ""                                                                                    + "\n" +
+    "# Linking to coverage report tool in case of test build"                             + "\n" +
+    "if(CMAKE_BUILD_TYPE MATCHES Test)"                                                   + "\n" +
+    "    target_link_libraries(${PROJECT_NAME} gcov)"                                     + "\n" +
+    "endif()"                                                                             + "\n" +
+    ""                                                                                    + "\n" +
+    "# Printing the size of build after building"                                         + "\n" +
+    "add_custom_command(TARGET ${PROJECT_NAME} "                                          + "\n" +
+    "    POST_BUILD COMMAND size $<TARGET_FILE:${PROJECT_NAME}>)"                         + "\n";
 
     return content;
 }

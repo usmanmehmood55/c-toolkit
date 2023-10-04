@@ -10,6 +10,12 @@ using CMake.
 - Command for creating a new project.
 - Command for generating a new component (library).
 
+## Important Note
+
+Right now this is a beta / pre-release extension, with undoubtedly lots of bugs.
+If you find a bug or have a suggestion, please [open a new issue](https://github.com/usmanmehmood55/c-toolkit/issues)
+and help me make this extension better. :)
+
 ## Requirements
 
 The following tools are required by extension to work properly. If they are not
