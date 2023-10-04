@@ -5,9 +5,11 @@ const fileTypeEnum =
 };
 
 /**
+ * Creates a CMakeLists file for a component with references to its header, source, mock and test files.
  * 
- * @param {string} componentName 
- * @returns 
+ * @param {string} componentName Name of the component.
+ * 
+ * @returns {string} contents of component CmakeLists
  */
 function ComponentCmake(componentName)
 {
@@ -33,17 +35,21 @@ function ComponentCmake(componentName)
 }
 
 /**
- * @param {string} componentName 
- * @param {string} fileType 
- * @param {string} prefix 
- * @returns 
+ * Generates a Doxygen style file header containing the file, author, brief,
+ * version, date and copyright tags.
+ * 
+ * @param {string} fileName Name of the component to generate file header for
+ * @param {string} fileType File extension, can be .h or .c
+ * @param {string} prefix File name prefix for making headers for mock and test files
+ * 
+ * @returns {string} Doxygen style header
  */
-function DoxygenHeader(componentName, fileType, prefix)
+function DoxygenHeader(fileName, fileType, prefix)
 {
-    let fileName = `${componentName}.${fileType}`;
+    let fullFileName = `${fileName}.${fileType}`;
     if (prefix !== null)
     {
-        fileName = `${prefix}_` + fileName;
+        fullFileName = `${prefix}_` + fullFileName;
     }
     
     let yourName    = "Your Name";
@@ -51,22 +57,27 @@ function DoxygenHeader(componentName, fileType, prefix)
     let companyName = "your company / association / school";
 
     let doxygenHeader = 
-        "/**"                                                          + "\n" +
-        ` * @file     ${fileName}`                                     + "\n" +
-        ` * @author   ${yourName} (${yourEmail})`                      + "\n" +
-        " * @brief    "                                                + "\n" +
-        " * @version  0.1"                                             + "\n" +
-        ` * @date     ${new Date().toISOString().split('T')[0]}`       + "\n" +
-        " * "                                                          + "\n" +
-        ` * Copyright (c) ${new Date().getFullYear()}, ${companyName}` + "\n" +
+        "/**"                                                           + "\n" +
+        ` * @file      ${fullFileName}`                                 + "\n" +
+        ` * @author    ${yourName} (${yourEmail})`                      + "\n" +
+        " * @brief     your library's description"                      + "\n" +
+        " * @version   0.1"                                             + "\n" +
+        ` * @date      ${new Date().toISOString().split('T')[0]}`       + "\n" +
+        " * "                                                           + "\n" +
+        ` * @copyright ${new Date().getFullYear()}, ${companyName}`     + "\n" +
         " */";
 
     return doxygenHeader;
 }
 
 /**
- * @param {string} fileName 
- * @returns {string}
+ * Creates the boilerplate code for a header file, containing its Doxygen header,
+ * include guards and a compiler warning indicating that has not been implemented
+ * yet.
+ * 
+ * @param {string} fileName Name of the file
+ * 
+ * @returns {string} boilerplate code
  */
 function Header(fileName) 
 {
@@ -84,44 +95,57 @@ function Header(fileName)
 }
 
 /**
+ * Creates the biolerplate code for a test header file, containing its Doxygen
+ * header, include guards and a compiler warning indicating that it has not been
+ * implemented yet.
  * 
- * @param {string} componentName 
- * @returns 
+ * @param {string} fileName Name of the file
+ * 
+ * @returns {string} boilerplate code
+ * 
+ * @todo Replace this with the Header function.
  */
-function TestHeader(componentName)
+function TestHeader(fileName)
 {
     let content = 
-        DoxygenHeader(componentName, fileTypeEnum.header, "test")         + "\n" +
-        ""                                                                + "\n" +
-        `#ifndef TEST_${componentName.toUpperCase()}_H_`                  + "\n" +
-        `#define TEST_${componentName.toUpperCase()}_H_`                  + "\n" +
-        ""                                                                + "\n" +
-        `#warning \"test_${componentName} has not been implemented yet\"` + "\n" +
-        ""                                                                + "\n" +
-        `#endif // TEST_${componentName.toUpperCase()}_H_`                + "\n" ;
+        DoxygenHeader(fileName, fileTypeEnum.header, "test")         + "\n" +
+        ""                                                           + "\n" +
+        `#ifndef TEST_${fileName.toUpperCase()}_H_`                  + "\n" +
+        `#define TEST_${fileName.toUpperCase()}_H_`                  + "\n" +
+        ""                                                           + "\n" +
+        `#warning \"test_${fileName} has not been implemented yet\"` + "\n" +
+        ""                                                           + "\n" +
+        `#endif // TEST_${fileName.toUpperCase()}_H_`                + "\n" ;
 
     return content;
 }
 
 /**
+ * Creates the biolerplate code for a test source file, containing its
+ * Doxygen header, and inclusions of the test header and its own relevant
+ * .h file.
  * 
- * @param {string} componentName 
- * @returns 
+ * @param {string} fileName Name of the file
+ * 
+ * @returns {string} boilerplate code
  */
-function TestSource(componentName)
+function TestSource(fileName)
 {
     let content = 
-        DoxygenHeader(componentName, fileTypeEnum.source, "test") + "\n" +
-        ""                                                        + "\n" +
-        `#include \"${componentName}.h\"`                         + "\n" +
-        `#include \"test_${componentName}.h\"`                    + "\n" ;
+        DoxygenHeader(fileName, fileTypeEnum.source, "test") + "\n" +
+        ""                                                   + "\n" +
+        `#include \"${fileName}.h\"`                         + "\n" +
+        `#include \"test_${fileName}.h\"`                    + "\n" ;
 
     return content;
 }
 
 /**
- * @param {string} fileName 
- * @returns {string}
+ * Creates the boilerplate code for a source file, containing its Doxygen
+ * header and inclusion of its relevant .h file.
+ * 
+ * @param {string} fileName Name of the file
+ * @returns {string} boilerplate code
  */
 function Source(fileName) 
 {
@@ -134,21 +158,31 @@ function Source(fileName)
 }
 
 /**
- * @param {string} componentName 
- * @returns {string}
+ * Creates boilerplate code for a mock source file containing its Doxygen
+ * header and inclusion of its relevant .h file.
+ * 
+ * @param {string} fileName Name of the file
+ * 
+ * @returns {string} boilerplate code
  */
-function Mock(componentName) 
+function Mock(fileName) 
 {
     let content = 
-        DoxygenHeader(componentName, fileTypeEnum.source, "mock")           + "\n" +
-        ""                                                                  + "\n" +
-        `#include \"${componentName}.h\"`                                   + "\n" +
-        ""                                                                  + "\n" +
-        "// add functions here that mock the behaviour of your component"   + "\n";
+        DoxygenHeader(fileName, fileTypeEnum.source, "mock")              + "\n" +
+        ""                                                                + "\n" +
+        `#include \"${fileName}.h\"`                                      + "\n" +
+        ""                                                                + "\n" +
+        "// add functions here that mock the behaviour of your component" + "\n";
 
     return content;
 }
 
+/**
+ * Creates a generic root CMakeLists.txt that contains some very basic
+ * functionality and the "components" list variable.
+ * 
+ * @returns {string} CMakeLists.txt content
+ */
 function ProjectCmake()
 {
     let content = 
@@ -157,15 +191,13 @@ function ProjectCmake()
     "cmake_minimum_required(VERSION 3.10)"                                 + "\n" +
     ""                                                                     + "\n" +
     "get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)"  + "\n" +
-    "project(${PROJECT_NAME} VERSION 0.1 LANGUAGES ASM C)"                 + "\n" +
+    "project(${PROJECT_NAME} VERSION 0.1 LANGUAGES C)"                     + "\n" +
     ""                                                                     + "\n" +
     "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)"                                + "\n" +
     ""                                                                     + "\n" +
-    "set(CMAKE_C_FLAGS_DEBUG     \"-O0 -g3 --coverage -DDEBUG\")"          + "\n" +
-    "set(CMAKE_CXX_FLAGS_DEBUG   \"-O0 -g3 --coverage -DDEBUG\")"          + "\n" +
-    ""                                                                     + "\n" +
-    "set(CMAKE_C_FLAGS_RELEASE   \"-O2\")"                                 + "\n" +
-    "set(CMAKE_CXX_FLAGS_RELEASE \"-O2\")"                                 + "\n" +
+    "set(CMAKE_C_FLAGS_RELEASE \"-O3\")"                                   + "\n" +
+    "set(CMAKE_C_FLAGS_DEBUG   \"-O0 -g3\")"                               + "\n" +
+    "set(CMAKE_C_FLAGS_TEST    \"-O0 -g3 -D__test_build__ --coverage\")"   + "\n" +
     ""                                                                     + "\n" +
     "add_executable(${PROJECT_NAME} main.c)"                               + "\n" +
     ""                                                                     + "\n" +
@@ -178,11 +210,20 @@ function ProjectCmake()
     "    add_subdirectory(components/${COMPONENT})"                        + "\n" +
     "endforeach()"                                                         + "\n" +
     ""                                                                     + "\n" +
-    "target_link_libraries(${PROJECT_NAME} gcov)"                          + "\n";
+    "if(CMAKE_BUILD_TYPE MATCHES Test)"                                    + "\n" +
+    "    target_link_libraries(${PROJECT_NAME} gcov)"                      + "\n" +
+    "endif()"                                                              + "\n" +
+    "add_custom_command(TARGET ${PROJECT_NAME} "                           + "\n" +
+    "    POST_BUILD COMMAND size $<TARGET_FILE:${PROJECT_NAME}>)"          + "\n";
 
     return content;
 }
 
+/**
+ * Creates the c_cpp_properties.json file contents.
+ * 
+ * @returns {string} Contents of c_cpp_properties.json
+ */
 function CppPropertiesJson()
 {
     let content =
@@ -206,6 +247,11 @@ function CppPropertiesJson()
     return content;
 }
 
+/**
+ * Creates the launch.json file contents.
+ * 
+ * @returns {string}  Contents of launch.json
+ */
 function LaunchJson()
 {
     let content = 
@@ -244,11 +290,21 @@ function LaunchJson()
     return content;
 }
 
+/**
+ * Creates the settings.json file contents.
+ * 
+ * @returns {string}  Contents of settings.json
+ */
 function SettingsJson()
 {
     return ""; // no content for this file right now
 }
 
+/**
+ * Creates the tasks.json file contents.
+ * 
+ * @returns {string}  Contents of tasks.json
+ */
 function TasksJson()
 {
     const content =
@@ -289,6 +345,12 @@ function TasksJson()
     return content;
 }
 
+/**
+ * Creates the main.c file containing inclusions for stdio and stdint, along
+ * with an empty, zero returning main function.
+ * 
+ * @returns {string}  Contents of main.c
+ */
 function MainSource()
 {
     const content =
