@@ -253,7 +253,7 @@ function installTool(toolName)
         }
         catch (error)
         {
-            throw new Error(`Failed to install ${toolName}: ${error.message}`);
+            throw new Error(error.message);
         }
 
         return isInstalled;
@@ -283,19 +283,74 @@ function askForRestart(restartReason)
 /**
  * Initiates the installation of each tool one by one. After the installation of all tools,
  * it asks the user if they want to restart VSCode. If allowed, it restarts VSCode. 
+ * If any tools fail to install, it notifies the user about those tools.
  * 
  * @param {string[]} tools An array containing names of the tools to install.
  */
-function InstallMultipleTools(tools)
+async function InstallMultipleTools(tools)
 {
+    /** @type {string[]} */
     let installedTools = [];
+
+    /** @type {Array<{tool: string, failReason: string}>} */
+    let failedTools = [];
+
     for (let tool of tools)
     {
-        if (installTool(tool)) installedTools.push(tool);
+        try
+        {
+            if ((tool === BuildTools.GDB) && (checkOs() === OsTypes.MACOS))
+            {
+                throw new Error('GDB will not be used for MacOS, instead LLDB support will be added.');
+            }
+
+            let selection = await installTool(tool);
+            if (selection === true)
+            {
+                installedTools.push(tool);
+            }
+            else
+            {
+                throw new Error('This line should not have executed');
+            }
+        }
+        catch (error)
+        {
+            let failReason = `${error.message}`;
+            failedTools.push({tool, failReason});
+        }
     }
 
-    const installedToolList = formatList(installedTools);
-    askForRestart(`${installedToolList} installation completed`);
+    processInstallationOutputs(installedTools, failedTools);
+}
+
+/**
+ * For now, this strange logic handles the failed installation messages thrown by multiple failed
+ * installations, while also showing the user why the individual installation failed.
+ * 
+ * @param {string[]} installedTools
+ * @param {Array<{tool: string, failReason: string}>} failedTools
+ */
+function processInstallationOutputs(installedTools, failedTools)
+{
+    if (failedTools.length > 0)
+    {
+        /** @type {string[]} */
+        let failArray = [];
+        for (let eachError of failedTools)
+        {
+            let errorStr = `${eachError.tool} (${eachError.failReason})`;
+            failArray.push(errorStr);
+        }
+        const failedToolList = formatList(failArray);
+        vscode.window.showErrorMessage(`Failed to install: ${failedToolList}. Please install manually.`);
+    }
+
+    if (installedTools.length > 0)
+    {
+        const installedToolList = formatList(installedTools);
+        askForRestart(`${installedToolList} installation completed`);
+    }
 }
 
 /**
@@ -326,6 +381,7 @@ async function askAndInstallMultipleTools(tools)
  */
 async function searchForTools()
 {
+    /** @type {string[]} */
     let missingTools = [];
 
     if (checkOs() === OsTypes.WINDOWS)
