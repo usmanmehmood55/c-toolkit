@@ -1,68 +1,43 @@
-const vscode   = require('vscode');
-const fs       = require('fs');
-const path     = require('path');
-
-const RELEASE_BUILD    = 'Release';
-const TEST_BUILD       = 'Test';
-const DEBUG_BUILD      = 'Debug';
+const vscode = require('vscode');
+const fs     = require('fs');
+const path   = require('path');
 
 const BUILD_DIR_NAME    = 'build';
-const BUILD_SCRIPT_NAME = 'CMakeLists.txt';
-
+const CMAKE_LISTS_NAME  = 'CMakeLists.txt';
+const BUILD_MARKER_NAME = 'z_build_complete_marker';
 const BUILD_DIR_PATH    = path.join(vscode.workspace.rootPath, BUILD_DIR_NAME);
-const CMAKE_LISTS_PATH  = path.join(vscode.workspace.rootPath, BUILD_SCRIPT_NAME);
+const CMAKE_LISTS_PATH  = path.join(vscode.workspace.rootPath, CMAKE_LISTS_NAME);
+const BUILD_MARKER_PATH = path.join(BUILD_DIR_PATH, BUILD_MARKER_NAME);
 const NATIVE_EXEC_PATH  = path.join(BUILD_DIR_PATH, `${vscode.workspace.name}.exe`);
-const BUILD_MARKER_PATH = path.join(BUILD_DIR_PATH, 'z_build_complete_marker');
 
 const BUILD_TERMINAL_NAME = "CMake Build";
 const RUN_TERMINAL_NAME   = "CMake Run";
 
-/**
- * Selects the build type between Release and Debug, and asks to perform a clean
- * build if teh type changes.
- * 
- * @param   {vscode.StatusBarItem} button
- * @param   {string}               buildType 
- * @returns {Promise<string>}      newBuildType
- */
-async function selectBuild(button, buildType)
+const BuildTypes = 
 {
-    // show a message that lets the user pick between build types
-    let newBuildType = await vscode.window.showQuickPick([RELEASE_BUILD, DEBUG_BUILD]);
+    RELEASE : 'Release',
+    TEST    : 'Test',
+    DEBUG   : 'Debug',
+};
 
-    // if no selection or the same selection, do not do anything
-    if (!newBuildType || newBuildType === buildType)
-    {
-        return buildType;
-    }
-
-    // otherwise set buildType to newBuildType
-    buildType = newBuildType;
-
-    // set the button text to the new selection
-    button.text = `$(gear) ${buildType}`;
-
-    // Prompt the user to make a clean build after build type is changed
-    await askNewBuild(buildType, 'Build type has changed. Do you want to make a clean build?');
-
-    return buildType;
-}
-
-/**
- * Asks for a new build and performs the build if the user selects 'yes'.
- * 
- * @param {string} buildType Build type
- * @param {string} message   Message to display while asking for a new build
- */
-async function askNewBuild(buildType, message) 
+const BuildSubsystems = 
 {
-    let response = await vscode.window.showInformationMessage(message, 'Yes', 'No');
-    if (response === 'Yes') 
+    NINJA : 'ninja',
+    MAKE  : 'make',
+};
+
+class BuildState
+{
+    /**
+     * @param {string} type 
+     * @param {string} subSystem
+     */
+    constructor(type, subSystem) 
     {
-        await cleanBuild(true);
-        await invokeBuild(buildType);
+        this.type      = type;
+        this.subSystem = subSystem;
     }
-}
+};
 
 /**
  * Cleans the build directory.
@@ -95,14 +70,89 @@ async function cleanBuild(is_silent)
     }
 }
 
+/**
+ * Asks for a new build and performs the build if the user selects 'yes'.
+ * 
+ * @param {BuildState} buildState Build state
+ * @param {string}     message    Message to display while asking for a new build
+ */
+async function askNewBuild(buildState, message) 
+{
+    let response = await vscode.window.showInformationMessage(message, 'Yes', 'No');
+    if (response === 'Yes') 
+    {
+        await cleanBuild(true);
+        await invokeBuild(buildState);
+    }
+}
 
+/**
+ * Selects the build type between Release and Debug, and asks to perform a clean
+ * build if teh type changes.
+ * 
+ * @param   {vscode.StatusBarItem} button
+ * @param   {BuildState}           buildState 
+ * @returns {Promise<BuildState>}  newBuildState
+ */
+async function selectBuild(button, buildState)
+{
+    // show a message that lets the user pick between build types
+    let newBuildType = await vscode.window.showQuickPick([BuildTypes.RELEASE, BuildTypes.DEBUG]);
+
+    // if no selection or the same selection, do not do anything
+    if (!newBuildType || newBuildType === buildState.type)
+    {
+        return buildState;
+    }
+
+    // otherwise set buildType to newBuildType
+    buildState.type = newBuildType;
+
+    // set the button text to the new selection
+    button.text = `$(gear) ${buildState.type}`;
+
+    // Prompt the user to make a clean build after build type is changed
+    await askNewBuild(buildState, 'Build type has changed. Do you want to make a clean build?');
+
+    return buildState;
+}
+
+/**
+ * Selects the build type between Release and Debug, and asks to perform a clean
+ * build if teh type changes.
+ * 
+ * @param   {vscode.StatusBarItem} button
+ * @param   {BuildState}           buildState 
+ * @returns {Promise<BuildState>}  newBuildSubsystem
+ */
+async function selectBuildSubsystem(button, buildState)
+{
+    let newBuildSubsystem = await vscode.window.showQuickPick([BuildSubsystems.NINJA, BuildSubsystems.MAKE]);
+
+    // if no selection or the same selection, do not do anything
+    if ((!newBuildSubsystem) || (newBuildSubsystem === buildState.subSystem))
+    {
+        return buildState;
+    }
+
+    // otherwise set buildType to newBuildType
+    buildState.subSystem = newBuildSubsystem;
+
+    // set the button text to the new selection
+    button.text = `$(cpu) ${buildState.subSystem}`;
+
+    // Prompt the user to make a clean build after build type is changed
+    await askNewBuild(buildState, 'Build subsystem has changed. Do you want to make a clean build?');
+
+    return buildState;
+}
 
 /**
  * Invokes CMake to build, given the build type.
  * 
- * @param {string} buildType
+ * @param {BuildState} buildState
  */
-async function invokeBuild(buildType)
+async function invokeBuild(buildState)
 {
     const workspaceRoot = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0].uri.fsPath;
 
@@ -122,7 +172,7 @@ async function invokeBuild(buildType)
      * The z_build_complete_marker is added in the end to give an indication of build process being complete.
      * I could not find any other way of signalling to the extension about the completion of build
      */
-    let execString = `cmake -GNinja -Bbuild -DCMAKE_BUILD_TYPE=${buildType} ; ninja -C build ; touch ${BUILD_DIR_PATH}/z_build_complete_marker`;
+    let execString = `cmake -GNinja -Bbuild -DCMAKE_BUILD_TYPE=${buildState.type} ; ninja -C build ; touch ${BUILD_DIR_PATH}/z_build_complete_marker`;
 
     // Try to find an existing terminal named "Build Terminal"
     let terminal = vscode.window.terminals.find(t => t.name === BUILD_TERMINAL_NAME);
@@ -145,22 +195,20 @@ async function invokeBuild(buildType)
     }
 }
 
-
-
 /**
  * Invokes a build and executes the application.
  * 
- * @param {string}  buildType    Build type (Release, Debug, Test)
- * @param {boolean} should_clean Cleans the build if true
+ * @param {BuildState} buildState  Build type (Release, Debug, Test)
+ * @param {boolean}    shouldClean Cleans the build if true
  */
-async function invokeRun(buildType, should_clean) 
+async function invokeRun(buildState, shouldClean) 
 {
-    if (should_clean)
+    if (shouldClean)
     {
-        await cleanBuild(true);
+        await  cleanBuild(true);
     }
 
-    await invokeBuild(buildType);
+    await invokeBuild(buildState);
 
     if (fs.existsSync(NATIVE_EXEC_PATH))
     {
@@ -200,10 +248,12 @@ async function delay(ms)
 
 /**
  * Creates a test build and runs the test application.
+ * @param {BuildState} buildState 
  */
-async function invokeTests() 
+async function invokeTests(buildState) 
 {
-    invokeRun(TEST_BUILD, true);
+    buildState.type = BuildTypes.TEST;
+    invokeRun(buildState, true);
 
     // Add a delay before executing the command. Adjust the time based on your average build and test time.
     await delay(3000);
@@ -213,19 +263,23 @@ async function invokeTests()
 /**
  * Starts a debug session for the application.
  * 
- * @param {string} buildType Release or Debug
+ * @param {BuildState} buildState Release or Debug
  */
-async function invokeDebug(buildType) 
+async function invokeDebug(buildState) 
 {
     await cleanBuild(true);
-    await invokeBuild(buildType);
+    await invokeBuild(buildState);
     let debugProfileName = "c-toolkit launch";
     vscode.debug.startDebugging(vscode.workspace.workspaceFolders[0], debugProfileName);
 }
 
 module.exports = 
 {
+    BuildState,
+    BuildTypes,
+    BuildSubsystems,
     selectBuild,
+    selectBuildSubsystem,
     cleanBuild,
     invokeBuild,
     invokeRun,
