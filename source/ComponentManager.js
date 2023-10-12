@@ -2,6 +2,7 @@ const fs           = require('fs');
 const path         = require('path');
 const vscode       = require('vscode');
 const fileContents = require('./FileContents');
+const utils        = require('./Utils');
 
 let createComponentDisposable;
 
@@ -43,7 +44,7 @@ async function SelectComponentProperties(component)
     let componentName = await vscode.window.showInputBox({ prompt: 'Enter the name of the new component' });
     if (componentName !== undefined)
     {
-        component.name = componentName;
+        component.name = utils.SanitizeFileName(componentName);
     }
     else
     {
@@ -175,6 +176,13 @@ async function RegisterComponentToMainCmake(component)
  */
 async function createNewComponent()
 {
+    let rootCmakeFilePath = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'CMakeLists.txt');
+    if (fs.existsSync(rootCmakeFilePath) === false)
+    {
+        vscode.window.showWarningMessage(`Root CMakeLists.txt not found.`);
+        return undefined;
+    }
+
     let component = new Component(undefined, false, false);
 
     await SelectComponentProperties(component);
