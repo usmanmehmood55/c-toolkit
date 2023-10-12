@@ -64,7 +64,7 @@ function DoxygenHeader(fileName, fileType, prefix)
         "/**"                                                           + "\n" +
         ` * @file      ${fullFileName}`                                 + "\n" +
         ` * @author    ${yourName} (${yourEmail})`                      + "\n" +
-        " * @brief     your library's description"                      + "\n" +
+        " * @brief     your file's description"                         + "\n" +
         " * @version   0.1"                                             + "\n" +
         ` * @date      ${new Date().toISOString().split('T')[0]}`       + "\n" +
         ` * @copyright ${new Date().getFullYear()}, ${companyName}`     + "\n" +
@@ -101,18 +101,18 @@ function FileEndComment(fileName, fileType, prefix)
  */
 function MainSource()
 {
-    const content =
-
-    "#include <stdio.h>"                   + "\n" +
-    "#include <stdint.h>"                  + "\n" +
-    ""                                     + "\n" +
-    "int main(void)"                       + "\n" +
-    "{"                                    + "\n" +
-    "    printf(\"\\rHello, World!\\n\");" + "\n" +
-    "    return 0;"                        + "\n" +
-    "}"                                    + "\n" +
-    ""                                     + "\n" +
-    "// end of file main.c"                + "\n" ;
+    let content =
+        DoxygenHeader('main', fileTypeEnum.source, null) + "\n" +
+        ""                                               + "\n" +
+        "#include <stdint.h>"                            + "\n" +
+        ""                                               + "\n" +
+        "int main(void)"                                 + "\n" +
+        "{"                                              + "\n" +
+        "    printf(\"\\rHello, World!\\n\");"           + "\n" +
+        "    return 0;"                                  + "\n" +
+        "}"                                              + "\n" +
+        ""                                               + "\n" +
+        "// end of file main.c"                          + "\n" ;
 
     return content;
 }
@@ -246,6 +246,7 @@ function ProjectCmake()
     let content = 
 
     "# Start of root CMakeLists.txt"                                                      + "\n" +
+    ""                                                                                    + "\n" +
     "cmake_minimum_required(VERSION 3.10)"                                                + "\n" +
     ""                                                                                    + "\n" +
     "# Setting the project name based on the root folder name"                            + "\n" +
@@ -254,16 +255,19 @@ function ProjectCmake()
     ""                                                                                    + "\n" +
     "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)"                                               + "\n" +
     ""                                                                                    + "\n" +
+    "# Common build flags"                                                                + "\n" +
     "set(CMAKE_C_FLAGS         \"-Wall -Wextra -std=c11\")"                               + '\n' +
+    ""                                                                                    + "\n" +
+    "# Individual build type flags"                                                       + "\n" +
     "set(CMAKE_C_FLAGS_RELEASE \"${CMAKE_C_FLAGS} -O2\")"                                 + "\n" +
     "set(CMAKE_C_FLAGS_DEBUG   \"${CMAKE_C_FLAGS} -O0 -g3\")"                             + "\n" +
     "set(CMAKE_C_FLAGS_TEST    \"${CMAKE_C_FLAGS} -O0 -g3 -D__test_build__ --coverage\")" + "\n" +
     ""                                                                                    + "\n" +
-    "add_executable(${PROJECT_NAME} main.c)"                                              + "\n" +
-    ""                                                                                    + "\n" +
     "# List of components"                                                                + "\n" +
     "set(COMPONENTS "                                                                     + "\n" +
     "  )"                                                                                 + "\n" +
+    ""                                                                                    + "\n" +
+    "add_executable(${PROJECT_NAME} main.c)"                                              + "\n" +
     ""                                                                                    + "\n" +
     "# Add component subdirectories using loop"                                           + "\n" +
     "foreach(COMPONENT ${COMPONENTS})"                                                    + "\n" +
