@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const os     = require('os');
+const utils  = require('./Utils') ;
 const { exec, spawn, spawnSync } = require('child_process');
 
 /**
@@ -50,19 +51,6 @@ function checkOs()
     default:
         throw new Error('Unsupported OS type');
     }
-}
-
-/**
- * Formats a list of items into a human-friendly string.
- *
- * @param {string[]} items The list of items to format.
- * @returns {string} A string in the format "item1, item2, ... and lastItem".
- */
-function formatList(items)
-{
-    if (items.length === 0) return '';
-    if (items.length === 1) return items[0];
-    return items.slice(0, items.length - 1).join(', ') + ' and ' + items[items.length - 1];
 }
 
 /**
@@ -342,13 +330,13 @@ function processInstallationOutputs(installedTools, failedTools)
             let errorStr = `${eachError.tool} (${eachError.failReason})`;
             failArray.push(errorStr);
         }
-        const failedToolList = formatList(failArray);
+        const failedToolList = utils.FormatList(failArray);
         vscode.window.showErrorMessage(`Failed to install: ${failedToolList}. Please install manually.`);
     }
 
     if (installedTools.length > 0)
     {
-        const installedToolList = formatList(installedTools);
+        const installedToolList = utils.FormatList(installedTools);
         askForRestart(`${installedToolList} installation completed`);
     }
 }
@@ -361,7 +349,7 @@ function processInstallationOutputs(installedTools, failedTools)
  */
 async function askAndInstallMultipleTools(tools)
 {
-    const toolList = formatList(tools);
+    const toolList = utils.FormatList(tools);
     vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No').then(async selection =>
     {
         if (selection === 'Yes')
