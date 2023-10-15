@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
 
       - name: Use Node.js
         uses: actions/setup-node@v1
@@ -24,9 +26,6 @@ jobs:
 
       - name: Install vsce
         run : npm install -g vsce
-
-      # - name: Install dependencies
-      #   run : npm install
 
       - name: Determine release type
         id  : set_prerelease
@@ -40,20 +39,19 @@ jobs:
       - name: Check for version bump
         id: check_version
         run: |
-          # Fetch the latest commit from the remote branch
-          git fetch origin ${{ github.ref }}:remote_branch
-          
-          # Get the version from the remote branch's package.json
-          REMOTE_VERSION=$(git show remote_branch:package.json | jq .version -r)
-          
-          # Get the version from the current branch's package.json
+          PREVIOUS_VERSION=$(git show HEAD~1:package.json | jq .version -r)
           CURRENT_VERSION=$(jq .version -r package.json)
           
-          if [[ "$REMOTE_VERSION" != "$CURRENT_VERSION" ]]; then
-            echo "::set-output name=version_bumped::true"
-          else
-            echo "::set-output name=version_bumped::false"
-          fi
+          echo "Previous Version: $PREVIOUS_VERSION"
+          echo "Current Version: $CURRENT_VERSION"
+
+          echo "::set-output name=version_bumped::true"
+          
+        # if [[ "$PREVIOUS_VERSION" != "$CURRENT_VERSION" ]]; then
+        #   echo "::set-output name=version_bumped::true"
+        # else
+        #   echo "::set-output name=version_bumped::false"
+        # fi
 
       - name: Package Extension
         if  : steps.check_version.outputs.version_bumped == 'true'
