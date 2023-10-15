@@ -45,13 +45,11 @@ jobs:
           echo "Previous Version: $PREVIOUS_VERSION"
           echo "Current Version: $CURRENT_VERSION"
 
-          echo "::set-output name=version_bumped::true"
-          
-        # if [[ "$PREVIOUS_VERSION" != "$CURRENT_VERSION" ]]; then
-        #   echo "::set-output name=version_bumped::true"
-        # else
-        #   echo "::set-output name=version_bumped::false"
-        # fi
+          if [[ "$PREVIOUS_VERSION" != "$CURRENT_VERSION" ]]; then
+            echo "::set-output name=version_bumped::true"
+          else
+            echo "::set-output name=version_bumped::false"
+          fi
 
       - name: Package Extension
         if  : steps.check_version.outputs.version_bumped == 'true'
