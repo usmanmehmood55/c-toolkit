@@ -3,7 +3,7 @@
     "publisher": "UsmanMehmood",
     "displayName": "C Toolkit",
     "description": "Creates, builds and runs C applications using CMake",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "icon": "images/icon.png",
     "repository": {
         "type": "git",
