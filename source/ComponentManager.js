@@ -2,6 +2,7 @@ const fs           = require('fs');
 const path         = require('path');
 const vscode       = require('vscode');
 const fileContents = require('./FileContents');
+const utils        = require('./Utils');
 
 let createComponentDisposable;
 
@@ -43,7 +44,7 @@ async function SelectComponentProperties(component)
     let componentName = await vscode.window.showInputBox({ prompt: 'Enter the name of the new component' });
     if (componentName !== undefined)
     {
-        component.name = componentName;
+        component.name = utils.SanitizeFileName(componentName);
     }
     else
     {
@@ -156,16 +157,44 @@ async function PrepareComponentDirectory(component)
  */
 async function RegisterComponentToMainCmake(component)
 {
-    let mainCmakeFilePath = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'CMakeLists.txt');
-    if (fs.existsSync(mainCmakeFilePath) === false)
+    // redundant because this check was moved to createNewComponent()
+    let rootCmakeFilePath = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'CMakeLists.txt');
+    if (fs.existsSync(rootCmakeFilePath) === false)
     {
-        vscode.window.showWarningMessage(`Main CMakeLists.txt not found.`);
+        vscode.window.showWarningMessage(`Root CMakeLists.txt not found.`);
         return undefined;
     }
 
-    let mainCmakeContent = fs.readFileSync(mainCmakeFilePath).toString();
-    let newMainCmakeContent = mainCmakeContent.replace(/(set\(COMPONENTS\s*\n)([^\)]*)\)/s, `$1$2\n  ${component.name})`);
-    fs.writeFileSync(mainCmakeFilePath, newMainCmakeContent);
+    let rootCmakeContent = fs.readFileSync(rootCmakeFilePath).toString();
+
+    // append the component to the COMPONENTS list
+    let updatedCmakeContent = rootCmakeContent.replace(/(set\(COMPONENTS\s*\n)([^\)]*)\)/s, `$1$2\n  ${component.name})`);
+
+    // create a string for the new options
+    let newOptions = "";
+    if (component.tested)
+    {
+        newOptions += `\noption(ENABLE_${component.name.toUpperCase()}_TEST "Enable testing for the ${component.name} component" OFF)`;
+    }
+
+    if (component.mocked)
+    {
+        newOptions += `\noption(ENABLE_${component.name.toUpperCase()}_MOCK "Enable mocking for the ${component.name} component" OFF)`;
+    }
+
+    // Check if '# Component build options' exists
+    if (updatedCmakeContent.includes('# Component build options'))
+    {
+        // Add the new options after the comment '# Component build options'
+        updatedCmakeContent = updatedCmakeContent.replace(/# Component build options/, `# Component build options${newOptions}`);
+    }
+    else
+    {
+        // Add the comment and the new options before the add_executable line
+        updatedCmakeContent = updatedCmakeContent.replace(/add_executable\(/, `# Component build options${newOptions}\n\nadd_executable(`);
+    }
+
+    fs.writeFileSync(rootCmakeFilePath, updatedCmakeContent);
 }
 
 /**
@@ -175,6 +204,13 @@ async function RegisterComponentToMainCmake(component)
  */
 async function createNewComponent()
 {
+    let rootCmakeFilePath = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'CMakeLists.txt');
+    if (fs.existsSync(rootCmakeFilePath) === false)
+    {
+        vscode.window.showWarningMessage(`Root CMakeLists.txt not found.`);
+        return undefined;
+    }
+
     let component = new Component(undefined, false, false);
 
     await SelectComponentProperties(component);

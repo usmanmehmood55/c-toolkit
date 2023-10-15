@@ -1,8 +1,9 @@
-const fs           = require('fs');
-const path         = require('path');
-const vscode       = require('vscode');
-const fileContents = require('./FileContents');
+const fs               = require('fs');
+const path             = require('path');
+const vscode           = require('vscode');
+const fileContents     = require('./FileContents');
 const componentManager = require('./ComponentManager');
+const utils            = require('./Utils');
 
 let createProjectDisposable;
 
@@ -86,7 +87,7 @@ async function PrepareProjectDirectory(project)
     const baseFolderPath = selectedFolderUri[0].fsPath;
 
     // Ask the user about the project name
-    const projectName = await vscode.window.showInputBox({
+    let projectName = await vscode.window.showInputBox({
         prompt     : "Enter your project name",
         value      : project.name,
         placeHolder: "Project name"
@@ -97,6 +98,8 @@ async function PrepareProjectDirectory(project)
         vscode.window.showErrorMessage("Project name is required.");
         return;
     }
+
+    projectName = utils.SanitizeFileName(projectName);
 
     const projectDirPath = path.join(baseFolderPath, projectName);
 
