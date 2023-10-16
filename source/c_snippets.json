@@ -1,0 +1,181 @@
+{
+    "Add packed attribute": 
+    {
+        "prefix"     : "packed",
+        "description": "Adds a 'packed' attribute",
+        "body"       : 
+        [
+            "__attribute__ ((__packed__))"
+        ]
+    },
+    "Add aligned attribute": 
+    {
+        "prefix"     : "aligned",
+        "description": "Adds an 'aligned' attribute",
+        "body"       : 
+        [
+            "__attribute__ ((aligned ($0)))"
+        ]
+    },
+    "Add unused attribute": 
+    {
+        "prefix"     : "unused",
+        "description": "Adds an 'unused' attribute",
+        "body"       : 
+        [
+            "__attribute__((unused))"
+        ]
+    },
+    "Add weak attribute": 
+    {
+        "prefix"     : "weak",
+        "description": "Adds a 'weak' attribute",
+        "body"       : 
+        [
+            "__attribute__((weak))"
+        ]
+    },
+    "Create int function": 
+    {
+        "prefix"     : "intfunc",
+        "description": "Creates a function that returns the int type",
+        "body"       : 
+        [
+            "int $1($2)",
+            "{",
+            "    int $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create int8_t function": 
+    {
+        "prefix"     : "int8func",
+        "description": "Creates a function that returns the int8_t type",
+        "body"       : 
+        [
+            "int8_t $1($2)",
+            "{",
+            "    int8_t $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create int16_t function": 
+    {
+        "prefix"     : "int16func",
+        "description": "Creates a function that returns the int16_t type",
+        "body"       : 
+        [
+            "int16_t $1($2)",
+            "{",
+            "    int16_t $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create int32_t function": 
+    {
+        "prefix"     : "int32func",
+        "description": "Creates a function that returns the int32_t type",
+        "body"       : 
+        [
+            "int32_t $1($2)",
+            "{",
+            "    int32_t $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create int64_t function": 
+    {
+        "prefix"     : "int64func",
+        "description": "Creates a function that returns the int64_t type",
+        "body"       : 
+        [
+            "int64_t $1($2)",
+            "{",
+            "    int64_t $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create uint8_t function": 
+    {
+        "prefix"     : "uint8func",
+        "description": "Creates a function that returns the uint8_t type",
+        "body"       : 
+        [
+            "uint8_t $1($2)",
+            "{",
+            "    uint8_t $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create uint16_t function": 
+    {
+        "prefix"     : "uint16func",
+        "description": "Creates a function that returns the uint16_t type",
+        "body"       : 
+        [
+            "uint16_t $1($2)",
+            "{",
+            "    uint16_t $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create uint32_t function": 
+    {
+        "prefix"     : "uint32func",
+        "description": "Creates a function that returns the uint32_t type",
+        "body"       : 
+        [
+            "uint32_t $1($2)",
+            "{",
+            "    uint32_t $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create uint64_t function": 
+    {
+        "prefix"     : "uint64func",
+        "description": "Creates a function that returns the uint64_t type",
+        "body"       : 
+        [
+            "uint64_t $1($2)",
+            "{",
+            "    uint64_t $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create float function": 
+    {
+        "prefix"     : "flfunc",
+        "description": "Creates a function that returns the float type",
+        "body"       : 
+        [
+            "float $1($2)",
+            "{",
+            "    float $0;",
+            "    return $0;",
+            "}"
+        ]
+    },
+    "Create double function": 
+    {
+        "prefix"     : "doubfunc",
+        "description": "Creates a function that returns the double type",
+        "body"       : 
+        [
+            "double $1($2)",
+            "{",
+            "    double $0;",
+            "    return $0;",
+            "}"
+        ]
+    }
+}

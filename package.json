@@ -30,6 +30,12 @@
                 "command": "extension.createComponent",
                 "title": "C Toolkit: Create New Component"
             }
+        ],
+        "snippets": [
+            {
+                "language": "c",
+                "path": "./source/c_snippets.json"
+            }
         ]
     },
     "scripts": {
