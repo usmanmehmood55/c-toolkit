@@ -9,6 +9,7 @@ using CMake.
 - Checks for and installs missing build tools
 - Command for creating a new project.
 - Command for generating a new component (library).
+- Snippets
 
 ## Important Note
 
@@ -120,6 +121,19 @@ A component would have the following files
 
 It would also modify the root CMakeLists.txt to add the new component
 
-## Setup
+## Snippets
 
-Clone the repo and use `vsce package` to build the extension.
+The extension adds useful snippets for creating functions and attributes.
+
+- functions
+  - int (`intfunc`)
+  - int8_t to int64_t (`int8func`, `int16func`, `int32func`, `int64func`)
+  - uint8_t to uint64_t (`uint8func`, `uint16func`, `uint32func`, `uint64func`)
+  - float (`flfunc`)
+  - double (`doubfunc`)
+
+- attributes
+  - packed (`packed`)
+  - aligned (`aligned`)
+  - unused (`unused`)
+  - weak (`weak`)
