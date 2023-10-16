@@ -1,4 +1,57 @@
+const os     = require('os');
 const vscode = require('vscode');
+const path   = require('path');
+
+/**
+ * Enum for OS types
+ */
+const OsTypes = 
+{
+    WINDOWS : 'windows',
+    LINUX   : 'linux',
+    MACOS   : 'macos',
+};
+
+/**
+ * Checks the OS type, if it is Windows, Linux or MacOS.
+ * 
+ * @returns {string} enum of OS Type
+ */
+function CheckOs()
+{
+    switch (os.platform()) 
+    {
+    case 'win32':
+        return OsTypes.WINDOWS;
+    case 'darwin':
+        return OsTypes.MACOS;
+    case 'linux':
+        return OsTypes.LINUX;
+    default:
+        throw new Error('Unsupported OS type');
+    }
+}
+
+/**
+ * Wraps individual components of a path in quotes if they contain spaces.
+ * 
+ * @param {string} inputPath The path to check and possibly wrap.
+ * 
+ * @returns {string} The path with individual components possibly quoted.
+ */
+function WrapSpacedComponents(inputPath)
+{
+    return inputPath.split(path.sep).map(component =>
+    {
+        if (component.includes(' '))
+        {
+            return `"${component}"`;
+        }
+
+        return component;
+    }).join(path.sep);
+}
+
 
 /**
  * Formats a list of items into a human-friendly string.
@@ -44,5 +97,8 @@ function SanitizeFileName(name)
 module.exports =
 {
     FormatList,
-    SanitizeFileName
+    SanitizeFileName,
+    OsTypes,
+    CheckOs,
+    WrapSpacedComponents
 };

@@ -15,8 +15,8 @@
 
 ### Fixes
 
-- New project if a project exits: A new project is not created if the folder
-  already contains a CMakeLists.txt file.
+- ~~Creates a new component even if no project is present~~: A new component is
+  not created if the root folder doesn't contain a CMakeLists.txt file.
 
 ### Improvements
 

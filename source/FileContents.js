@@ -104,6 +104,7 @@ function MainSource()
     let content =
         DoxygenHeader('main', fileTypeEnum.source, null) + "\n" +
         ""                                               + "\n" +
+        "#include <stdio.h>"                             + "\n" +
         "#include <stdint.h>"                            + "\n" +
         ""                                               + "\n" +
         "int main(void)"                                 + "\n" +
