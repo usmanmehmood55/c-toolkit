@@ -2,7 +2,6 @@ const fs               = require('fs');
 const path             = require('path');
 const vscode           = require('vscode');
 const fileContents     = require('./FileContents');
-const componentManager = require('./ComponentManager');
 const utils            = require('./Utils');
 
 let createProjectDisposable;

@@ -1,15 +1,16 @@
 const vscode = require('vscode');
 const fs     = require('fs');
 const path   = require('path');
+const utils  = require('./Utils');
 
-const BUILD_DIR_NAME    = 'build';
-const CMAKE_LISTS_NAME  = 'CMakeLists.txt';
-const BUILD_MARKER_NAME = 'z_build_complete_marker';
-const BUILD_DIR_PATH    = path.join(vscode.workspace.rootPath, BUILD_DIR_NAME);
-const CMAKE_LISTS_PATH  = path.join(vscode.workspace.rootPath, CMAKE_LISTS_NAME);
-const BUILD_MARKER_PATH = path.join(BUILD_DIR_PATH, BUILD_MARKER_NAME);
-const NATIVE_EXEC_PATH  = path.join(BUILD_DIR_PATH, `${vscode.workspace.name}.exe`);
-
+const BUILD_DIR_NAME      = 'build';
+const CMAKE_LISTS_NAME    = 'CMakeLists.txt';
+const BUILD_MARKER_NAME   = 'z_build_complete';
+const BUILD_DIR_PATH      = path.join(vscode.workspace.rootPath, BUILD_DIR_NAME);
+const CMAKE_LISTS_PATH    = path.join(vscode.workspace.rootPath, CMAKE_LISTS_NAME);
+const BUILD_MARKER_PATH   = path.join(BUILD_DIR_PATH, BUILD_MARKER_NAME);
+const EXECUTABLE_NAME     = `${vscode.workspace.name}${(utils.CheckOs() === utils.OsTypes.WINDOWS) ? '.exe' : ''}`;
+const EXECUTABLE_PATH     = path.join(BUILD_DIR_PATH, EXECUTABLE_NAME);
 const BUILD_TERMINAL_NAME = "CMake Build";
 const RUN_TERMINAL_NAME   = "CMake Run";
 
@@ -168,11 +169,21 @@ async function invokeBuild(buildState)
         return;
     }
 
+    if(fs.existsSync(BUILD_MARKER_PATH))
+    {
+        fs.rmSync(BUILD_MARKER_PATH);
+    }
+
     /**
      * The z_build_complete_marker is added in the end to give an indication of build process being complete.
-     * I could not find any other way of signalling to the extension about the completion of build
+     * I could not find any other way of signalling to the extension about the completion of build.
      */
-    let execString = `cmake -GNinja -Bbuild -DCMAKE_BUILD_TYPE=${buildState.type} ; ninja -C build ; touch ${BUILD_DIR_PATH}/z_build_complete_marker`;
+    const buildCommand    = `cmake -G Ninja -B ${BUILD_DIR_NAME} -D CMAKE_BUILD_TYPE=${buildState.type}`;
+    const ninjaCommand    = 'ninja -C build';
+    const buildMarker     = `touch ${utils.WrapSpacedComponents(BUILD_MARKER_PATH)}`;
+    const terminalSepChar = (utils.CheckOs() === utils.OsTypes.WINDOWS) ? ';' : '&&';
+
+    const execString = `${buildCommand} ${terminalSepChar} ${ninjaCommand} ${terminalSepChar} ${buildMarker}`;
 
     // Try to find an existing terminal named "Build Terminal"
     let terminal = vscode.window.terminals.find(t => t.name === BUILD_TERMINAL_NAME);
@@ -189,10 +200,17 @@ async function invokeBuild(buildState)
     // show the terminal
     terminal.show();
 
+    /**
+     * I am avoiding checking for presence the executable itself because I want it to continue
+     * even if the build fails. If the build fails the executable would not be created and the
+     * program would remain stuck on this while loop if I were to check for the executable.
+     */
     while(!fs.existsSync(BUILD_MARKER_PATH))
     {
         // wait until build has completed
     }
+
+    delay(10); // wese hi
 }
 
 /**
@@ -210,9 +228,9 @@ async function invokeRun(buildState, shouldClean)
 
     await invokeBuild(buildState);
 
-    if (fs.existsSync(NATIVE_EXEC_PATH))
+    if (fs.existsSync(EXECUTABLE_PATH))
     {
-        let execString  = `${NATIVE_EXEC_PATH}`;
+        const execString  = utils.WrapSpacedComponents(EXECUTABLE_PATH);
 
         // Try to find an existing terminal named "Tests Terminal"
         let terminal = vscode.window.terminals.find(t => t.name === RUN_TERMINAL_NAME);
@@ -231,7 +249,7 @@ async function invokeRun(buildState, shouldClean)
     }
     else
     {
-        vscode.window.showErrorMessage(`${NATIVE_EXEC_PATH} not found.`);
+        vscode.window.showErrorMessage(`${EXECUTABLE_PATH} not found.`);
     }
 }
 
