@@ -3,6 +3,8 @@
 A VSCode extension to help create, build, run, debug and test C projects
 using CMake.
 
+![banner](images/banner.jpg)
+
 ## Features
 
 - Status bar buttons.
