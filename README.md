@@ -95,18 +95,17 @@ to make the component "mocked" and "tested".
 
 "Mocked" means a mock file would be created inside a "mock" folder. If
 the component name is `library`, the mock file would be `mock_library.c`.
-
-To enable mocking of this component, a variable named ENABLE_LIBRARY_MOCK
-would have to be manually set in the root CMake.
+A CMake variable `ENABLE_LIBRARY_MOCK` is also added to the root CMakeLists
+file. It can be enabled during the build invocation to compile the mock source
+instead of the actual source.
 
 ### Tested Components
 
 "Tested" means test header and source files would be created inside
 a "test" folder. If the component name is `library` then the test files
-would be `test_library.h` and `test_library.c`.
-
-To enable testing of this component, a variable named ENABLE_LIBRARY_TEST
-would have to be manually set in the root CMake.
+would be `test_library.h` and `test_library.c`. A CMake variable
+`ENABLE_LIBRARY_TEST` is also added to the root CMakeLists file. It can be
+enabled during the build invocation to compile the test files as well.
 
 ### Component Files
 
@@ -131,9 +130,13 @@ The extension adds useful snippets for creating functions and attributes.
   - uint8_t to uint64_t (`uint8func`, `uint16func`, `uint32func`, `uint64func`)
   - float (`flfunc`)
   - double (`doubfunc`)
+  
+  ![functions snippet](images/functions.gif)
 
 - attributes
   - packed (`packed`)
   - aligned (`aligned`)
   - unused (`unused`)
   - weak (`weak`)
+  
+  ![attributes snippet](images/attributes.gif)
