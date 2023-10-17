@@ -1,5 +1,31 @@
 # Change Log
 
+## [v0.1.3](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.1.3)
+
+### Features
+
+- Added snippets for common functions and attributes.
+
+### Fixes
+
+- Fixed tools detection and build invocation for folders with space in their paths.
+- main.c was missing `#include <stdio.h>`, added back.
+
+### Improvements
+
+- Improved build marker handling. Now it is deleted before a new build to make sure
+  a marker from the previous build is not taken as a build complete indication for
+  the current build.
+
+### Known Issues
+
+- Cannot find Scoop installation if there is a space in `PATH`.
+- GDB does not work on Apple's Arm64 architecture, so for that LLDB support will
+  be added. For now an error message is popped up is the user tries to install
+  GDB on MacOS.
+- Extension doesn't activate when a folder isn't open in the workspace.
+- Unknown behaviour for multiple folders in the same workspace.
+
 ## [v0.1.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.1.2)
 
 ### Features
@@ -15,8 +41,8 @@
 
 ### Fixes
 
-- New project if a project exits: A new project is not created if the folder
-  already contains a CMakeLists.txt file.
+- ~~Creates a new component even if no project is present~~: A new component is
+  not created if the root folder doesn't contain a CMakeLists.txt file.
 
 ### Improvements
 

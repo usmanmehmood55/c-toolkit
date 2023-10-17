@@ -1,6 +1,6 @@
 const vscode = require('vscode');
 const os     = require('os');
-const utils  = require('./Utils') ;
+const utils  = require('./Utils');
 const { exec, spawn, spawnSync } = require('child_process');
 
 /**
@@ -16,42 +16,12 @@ const BuildTools =
     SCOOP : 'scoop'
 };
 
-/**
- * Enum for OS types
- */
-const OsTypes = 
-{
-    WINDOWS : 'windows',
-    LINUX   : 'linux',
-    MACOS   : 'macos',
-};
-
 const PackageManagers = 
 {
-    [OsTypes.WINDOWS] : 'scoop',
-    [OsTypes.LINUX]   : 'apt-get',
-    [OsTypes.MACOS]   : 'brew',
+    [utils.OsTypes.WINDOWS] : 'scoop',
+    [utils.OsTypes.LINUX]   : 'apt-get',
+    [utils.OsTypes.MACOS]   : 'brew',
 };
-
-/**
- * Checks the OS type, if it is Windows, Linux or MacOS.
- * 
- * @returns {string} enum of OS Type
- */
-function checkOs()
-{
-    switch (os.platform()) 
-    {
-    case 'win32':
-        return OsTypes.WINDOWS;
-    case 'darwin':
-        return OsTypes.MACOS;
-    case 'linux':
-        return OsTypes.LINUX;
-    default:
-        throw new Error('Unsupported OS type');
-    }
-}
 
 /**
  * Checks for the presence of a program by using the --version thingy
@@ -223,7 +193,7 @@ function installTool(toolName)
             // Scoop installation has its own function.
             if (toolName === BuildTools.SCOOP) throw new Error("Scoop is not supposed to be installed from installTool() function");
 
-            let installCommand = PackageManagers[checkOs()] || null;
+            let installCommand = PackageManagers[utils.CheckOs()] || null;
             if (installCommand === null) throw new Error('Unsupported OS type');
 
             /**
@@ -287,7 +257,7 @@ async function InstallMultipleTools(tools)
     {
         try
         {
-            if ((tool === BuildTools.GDB) && (checkOs() === OsTypes.MACOS))
+            if ((tool === BuildTools.GDB) && (utils.CheckOs() === utils.OsTypes.MACOS))
             {
                 throw new Error('GDB will not be used for MacOS, instead LLDB support will be added.');
             }
@@ -372,7 +342,7 @@ async function searchForTools()
     /** @type {string[]} */
     let missingTools = [];
 
-    if (checkOs() === OsTypes.WINDOWS)
+    if (utils.CheckOs() === utils.OsTypes.WINDOWS)
     {
         let scoop = await isToolInPath(BuildTools.SCOOP);
         if (scoop === false)

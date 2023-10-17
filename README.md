@@ -9,6 +9,7 @@ using CMake.
 - Checks for and installs missing build tools
 - Command for creating a new project.
 - Command for generating a new component (library).
+- Snippets
 
 ## Important Note
 
@@ -94,18 +95,17 @@ to make the component "mocked" and "tested".
 
 "Mocked" means a mock file would be created inside a "mock" folder. If
 the component name is `library`, the mock file would be `mock_library.c`.
-
-To enable mocking of this component, a variable named ENABLE_LIBRARY_MOCK
-would have to be manually set in the root CMake.
+A CMake variable `ENABLE_LIBRARY_MOCK` is also added to the root CMakeLists
+file. It can be enabled during the build invocation to compile the mock source
+instead of the actual source.
 
 ### Tested Components
 
 "Tested" means test header and source files would be created inside
 a "test" folder. If the component name is `library` then the test files
-would be `test_library.h` and `test_library.c`.
-
-To enable testing of this component, a variable named ENABLE_LIBRARY_TEST
-would have to be manually set in the root CMake.
+would be `test_library.h` and `test_library.c`. A CMake variable
+`ENABLE_LIBRARY_TEST` is also added to the root CMakeLists file. It can be
+enabled during the build invocation to compile the test files as well.
 
 ### Component Files
 
@@ -120,6 +120,23 @@ A component would have the following files
 
 It would also modify the root CMakeLists.txt to add the new component
 
-## Setup
+## Snippets
 
-Clone the repo and use `vsce package` to build the extension.
+The extension adds useful snippets for creating functions and attributes.
+
+- functions
+  - int (`intfunc`)
+  - int8_t to int64_t (`int8func`, `int16func`, `int32func`, `int64func`)
+  - uint8_t to uint64_t (`uint8func`, `uint16func`, `uint32func`, `uint64func`)
+  - float (`flfunc`)
+  - double (`doubfunc`)
+  
+  ![functions snippet](images/functions.gif)
+
+- attributes
+  - packed (`packed`)
+  - aligned (`aligned`)
+  - unused (`unused`)
+  - weak (`weak`)
+  
+  ![attributes snippet](images/attributes.gif)
