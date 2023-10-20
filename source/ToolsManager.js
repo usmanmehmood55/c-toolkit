@@ -352,22 +352,19 @@ async function searchForTools()
         }
     }
 
-    let results = await Promise.all
-    ([
-        isToolInPath(BuildTools.GCC),
-        isToolInPath(BuildTools.GDB),
-        isToolInPath(BuildTools.CMAKE),
-        isToolInPath(BuildTools.NINJA),
-        isToolInPath(BuildTools.MAKE)
-    ]);
+    let toolsToCheck = [BuildTools.GCC, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE];
+    if (utils.CheckOs() !== utils.OsTypes.MACOS) 
+    {
+        toolsToCheck.push(BuildTools.GDB);
+    }
 
-    const tools = [BuildTools.GCC, BuildTools.GDB, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE];
+    let results = await Promise.all(toolsToCheck.map(tool => isToolInPath(tool)));
 
     for (let i = 0; i < results.length; i++)
     {
         if (!results[i])
         {
-            missingTools.push(tools[i]);
+            missingTools.push(toolsToCheck[i]);
         }
     }
 
