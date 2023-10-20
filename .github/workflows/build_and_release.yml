@@ -16,11 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Setup Git User
-        run: |
-          git config user.name "GitHub Action"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+        with:
+          fetch-depth: 2
 
       - name: Use Node.js
         uses: actions/setup-node@v1
@@ -29,14 +26,6 @@ jobs:
 
       - name: Install vsce
         run : npm install -g vsce
-
-      - name: Install dependencies
-        run : npm install
-
-      - name: Commit all changes
-        run: |
-          git add .
-          git diff --quiet && git diff --staged --quiet || git commit -m "chore: update files"
 
       - name: Determine release type
         id  : set_prerelease
@@ -47,29 +36,27 @@ jobs:
             echo "::set-output name=isPrerelease::false"
           fi
 
-      - name: Bump version
-        run : |
-          if [[ "${{ steps.set_prerelease.outputs.isPrerelease }}" == "true" ]]; then
-            npm version patch -m "Pre-release version %s"
+      - name: Check for version bump
+        id: check_version
+        run: |
+          PREVIOUS_VERSION=$(git show HEAD~1:package.json | jq .version -r)
+          CURRENT_VERSION=$(jq .version -r package.json)
+          
+          echo "Previous Version: $PREVIOUS_VERSION"
+          echo "Current Version: $CURRENT_VERSION"
+
+          if [[ "$PREVIOUS_VERSION" != "$CURRENT_VERSION" ]]; then
+            echo "::set-output name=version_bumped::true"
           else
-            npm version minor -m "Release version %s"
+            echo "::set-output name=version_bumped::false"
           fi
 
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh/
-          echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
-      - name: Push using SSH
-        run: |
-          git push git@github.com:usmanmehmood55/c-toolkit.git
-
       - name: Package Extension
+        if  : steps.check_version.outputs.version_bumped == 'true'
         run : vsce package
 
       - name: Publish to Marketplace
+        if  : steps.check_version.outputs.version_bumped == 'true'
         run : |
           if [[ "${{ steps.set_prerelease.outputs.isPrerelease }}" == "true" ]]; then
             vsce publish -p ${{ secrets.VSCE_PUBLISH_PAT }} --pre-release
@@ -78,6 +65,7 @@ jobs:
           fi
 
       - name: Get package information
+        if  : steps.check_version.outputs.version_bumped == 'true'
         id  : package_info
         run : |
           echo "::set-output name=version::$(node -p "require('./package.json').version")"
@@ -85,6 +73,7 @@ jobs:
           echo "::set-output name=publisher::$(node -p "require('./package.json').publisher")"
 
       - name: Create Release
+        if  : steps.check_version.outputs.version_bumped == 'true'
         id  : create_release
         uses: actions/create-release@v1
         with: 
@@ -96,6 +85,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: Upload Release Asset
+        if  : steps.check_version.outputs.version_bumped == 'true'
         id  : upload-release-asset
         uses: actions/upload-release-asset@v1
         with: 

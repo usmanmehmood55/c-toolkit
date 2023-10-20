@@ -4,14 +4,11 @@ const buttonActions          = require('./source/ButtonActions');
 const CreateProjectCommand   = require('./source/ProjectManager');
 const ToolsManager           = require('./source/ToolsManager');
 
-const BuildTypes = 
-{
-    RELEASE : 'Release',
-    TEST    : 'Test',
-    DEBUG   : 'Debug',
-};
+const BuildState      = buttonActions.BuildState;
+const BuildTypes      = buttonActions.BuildTypes;
+const BuildSubsystems = buttonActions.BuildSubsystems;
 
-let buildType = BuildTypes.RELEASE;
+let buildState = new BuildState(BuildTypes.RELEASE,  BuildSubsystems.NINJA);
 
 /**
  * @param {*} context 
@@ -20,13 +17,13 @@ function activate(context)
 {
     const buttons = 
     [
-        new StatusBarButton("Build Type", `$(gear) ${buildType}`,    'extension.selectBuild', "Click to switch build type",  7),
-        new StatusBarButton("Clean",      "$(trash) Clean",          'extension.clean',       "Clean the build",             6),
-        new StatusBarButton("Build",      "$(database) Build",       'extension.build',       "Build the project",           5),
-        new StatusBarButton("Run"  ,      "$(run) Run",              'extension.run',         "Run the application",         4),
-        new StatusBarButton("Debug",      "$(debug) Debug",          'extension.debug',       "Debug the processor",         3),
-        new StatusBarButton("Test",       "$(beaker) Test",          'extension.test',        "Run tests",                   2),
-        new StatusBarButton("Debug Test", `$(debug-alt) Debug Test`, 'extension.debugTest',   "Click to debug the test app", 1)
+        new StatusBarButton("Build Type", `$(gear) ${buildState.type}`, "extension.selectBuild", "Click to switch build type",  7),
+        new StatusBarButton("Clean",      "$(trash) Clean",             "extension.clean",       "Clean the build",             6),
+        new StatusBarButton("Build",      "$(database) Build",          "extension.build",       "Build the project",           5),
+        new StatusBarButton("Run"  ,      "$(run) Run",                 "extension.run",         "Run the application",         4),
+        new StatusBarButton("Debug",      "$(debug) Debug",             "extension.debug",       "Debug the processor",         3),
+        new StatusBarButton("Test",       "$(beaker) Test",             "extension.test",        "Run tests",                   2),
+        new StatusBarButton("Debug Test", "$(debug-alt) Debug Test",    "extension.debugTest",   "Click to debug the test app", 1)
     ];
 
     const disposables = buttons.map(button => createStatusBarItem(button, context));
@@ -81,13 +78,13 @@ function createStatusBarItem(button, context)
 
     const buttonActionsMap =
     {
-        "Build Type": () => buttonActions.selectBuild(item, buildType).then((selectedBuild) => { buildType = selectedBuild; }),   // eslint-disable-line brace-style
+        "Build Type": () => buttonActions.selectBuild(item, buildState).then((selectedBuild) => { buildState = selectedBuild; }),   // eslint-disable-line brace-style
         "Clean"     : () => buttonActions.cleanBuild(false),
-        "Build"     : () => buttonActions.invokeBuild(buildType),
-        "Run"       : () => buttonActions.invokeRun(buildType, true),
-        "Debug"     : () => buttonActions.invokeDebug(buildType),
-        "Test"      : () => buttonActions.invokeTests(),
-        "Debug Test": () => buttonActions.invokeDebug(BuildTypes.TEST),
+        "Build"     : () => buttonActions.invokeBuild(buildState),
+        "Run"       : () => buttonActions.invokeRun(buildState, true),
+        "Debug"     : () => buttonActions.invokeDebug(buildState),
+        "Test"      : () => buttonActions.invokeTests(buildState),
+        "Debug Test": () => buttonActions.invokeDebug(buildState),
     };
 
     const buttonAction = buttonActionsMap[button.name];
@@ -106,7 +103,9 @@ function createStatusBarItem(button, context)
 }
 
 function deactivate()
-{}
+{
+    console.log("C Toolkit extension deactivated");
+}
 
 module.exports = 
 {

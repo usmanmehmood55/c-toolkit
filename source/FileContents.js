@@ -14,6 +14,8 @@ const fileTypeEnum =
 function ComponentCmake(componentName)
 {
     let cmakeContent = 
+        `# Start of ${componentName} CMakeLists.txt`                                                               + "\n" +
+        ""                                                                                                         + "\n" +
         `set(CURRENT_DIR_NAME ${componentName})`                                                                   + "\n" +
         ""                                                                                                         + "\n" +
         `if(ENABLE_${componentName.toUpperCase()}_MOCK)`                                                           + "\n" +
@@ -29,7 +31,9 @@ function ComponentCmake(componentName)
         "    target_include_directories(${PROJECT_NAME} PRIVATE ./test)"                                           + "\n" +
         "endif()"                                                                                                  + "\n" +
         ""                                                                                                         + "\n" +
-        "target_include_directories(${PROJECT_NAME} PRIVATE ./include)";
+        "target_include_directories(${PROJECT_NAME} PRIVATE ./include)"                                            + "\n" +
+        ""                                                                                                         + "\n" +
+        `# End of ${componentName} CMakeLists.txt`                                                                 + "\n" ;
 
     return cmakeContent;
 }
@@ -40,7 +44,7 @@ function ComponentCmake(componentName)
  * 
  * @param {string} fileName Name of the component to generate file header for
  * @param {string} fileType File extension, can be .h or .c
- * @param {string} prefix File name prefix for making headers for mock and test files
+ * @param {string} prefix   File name prefix for making headers for mock and test files
  * 
  * @returns {string} Doxygen style header
  */
@@ -60,13 +64,58 @@ function DoxygenHeader(fileName, fileType, prefix)
         "/**"                                                           + "\n" +
         ` * @file      ${fullFileName}`                                 + "\n" +
         ` * @author    ${yourName} (${yourEmail})`                      + "\n" +
-        " * @brief     your library's description"                      + "\n" +
+        " * @brief     your file's description"                         + "\n" +
         " * @version   0.1"                                             + "\n" +
         ` * @date      ${new Date().toISOString().split('T')[0]}`       + "\n" +
         ` * @copyright ${new Date().getFullYear()}, ${companyName}`     + "\n" +
         " */";
 
     return doxygenHeader;
+}
+
+/**
+ * Generates a comment for the file indicating the E.O.F. (end of file)
+ * 
+ * @param {string} fileName Name of the component to generate file header for
+ * @param {string} fileType File extension, can be .h or .c
+ * @param {string} prefix   File name prefix for making headers for mock and test files
+ * 
+ * @returns {string} E.O.F. comment
+ */
+function FileEndComment(fileName, fileType, prefix)
+{
+    let fullFileName = `${fileName}.${fileType}`;
+    if (prefix !== null)
+    {
+        fullFileName = `${prefix}_` + fullFileName;
+    }
+
+    return `// end of file ${fullFileName}`;
+}
+
+/**
+ * Creates the main.c file containing inclusions for stdio and stdint, along
+ * with an empty, zero returning main function.
+ * 
+ * @returns {string}  Contents of main.c
+ */
+function MainSource()
+{
+    let content =
+        DoxygenHeader('main', fileTypeEnum.source, null) + "\n" +
+        ""                                               + "\n" +
+        "#include <stdio.h>"                             + "\n" +
+        "#include <stdint.h>"                            + "\n" +
+        ""                                               + "\n" +
+        "int main(void)"                                 + "\n" +
+        "{"                                              + "\n" +
+        "    printf(\"\\rHello, World!\\n\");"           + "\n" +
+        "    return 0;"                                  + "\n" +
+        "}"                                              + "\n" +
+        ""                                               + "\n" +
+        "// end of file main.c"                          + "\n" ;
+
+    return content;
 }
 
 /**
@@ -88,7 +137,9 @@ function Header(fileName)
         ""                                                      + "\n" +
         `#warning \"${fileName} has not been implemented yet\"` + "\n" +
         ""                                                      + "\n" +
-        `#endif // ${fileName.toUpperCase()}_H_`                + "\n" ;
+        `#endif // ${fileName.toUpperCase()}_H_`                + "\n" +
+        ""                                                      + "\n" +
+        FileEndComment(fileName, fileTypeEnum.source, null)     + "\n" ;
 
     return content;
 }
@@ -114,7 +165,9 @@ function TestHeader(fileName)
         ""                                                           + "\n" +
         `#warning \"test_${fileName} has not been implemented yet\"` + "\n" +
         ""                                                           + "\n" +
-        `#endif // TEST_${fileName.toUpperCase()}_H_`                + "\n" ;
+        `#endif // TEST_${fileName.toUpperCase()}_H_`                + "\n" +
+        ""                                                           + "\n" +
+        FileEndComment(fileName, fileTypeEnum.source, "test")        + "\n" ;
 
     return content;
 }
@@ -131,10 +184,12 @@ function TestHeader(fileName)
 function TestSource(fileName)
 {
     let content = 
-        DoxygenHeader(fileName, fileTypeEnum.source, "test") + "\n" +
-        ""                                                   + "\n" +
-        `#include \"${fileName}.h\"`                         + "\n" +
-        `#include \"test_${fileName}.h\"`                    + "\n" ;
+        DoxygenHeader(fileName, fileTypeEnum.source, "test")  + "\n" +
+        ""                                                    + "\n" +
+        `#include \"${fileName}.h\"`                          + "\n" +
+        `#include \"test_${fileName}.h\"`                     + "\n" +
+        ""                                                    + "\n" +
+        FileEndComment(fileName, fileTypeEnum.source, "test") + "\n" ;
 
     return content;
 }
@@ -144,14 +199,17 @@ function TestSource(fileName)
  * header and inclusion of its relevant .h file.
  * 
  * @param {string} fileName Name of the file
+ * 
  * @returns {string} boilerplate code
  */
 function Source(fileName) 
 {
     let content = 
-        DoxygenHeader(fileName, fileTypeEnum.source, null) + "\n" +
-        ""                                                 + "\n" +
-        `#include \"${fileName}.h\"`                       + "\n" ;
+        DoxygenHeader(fileName, fileTypeEnum.source, null)  + "\n" +
+        ""                                                  + "\n" +
+        `#include \"${fileName}.h\"`                        + "\n" +
+        ""                                                  + "\n" +
+        FileEndComment(fileName, fileTypeEnum.source, null) + "\n" ;
 
     return content;
 }
@@ -171,7 +229,9 @@ function Mock(fileName)
         ""                                                                + "\n" +
         `#include \"${fileName}.h\"`                                      + "\n" +
         ""                                                                + "\n" +
-        "// add functions here that mock the behaviour of your component" + "\n";
+        "// add functions here that mock the behaviour of your component" + "\n" +
+        ""                                                                + "\n" +
+        FileEndComment(fileName, fileTypeEnum.source, "mock")             + "\n" ;
 
     return content;
 }
@@ -186,6 +246,8 @@ function ProjectCmake()
 {
     let content = 
 
+    "# Start of root CMakeLists.txt"                                                      + "\n" +
+    ""                                                                                    + "\n" +
     "cmake_minimum_required(VERSION 3.10)"                                                + "\n" +
     ""                                                                                    + "\n" +
     "# Setting the project name based on the root folder name"                            + "\n" +
@@ -194,17 +256,19 @@ function ProjectCmake()
     ""                                                                                    + "\n" +
     "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)"                                               + "\n" +
     ""                                                                                    + "\n" +
-    "set(CMAKE_C_FLAGS \"-Wall -Wextra -std=c11\")"                                       + '\n' +
+    "# Common build flags"                                                                + "\n" +
+    "set(CMAKE_C_FLAGS         \"-Wall -Wextra -std=c11\")"                               + '\n' +
     ""                                                                                    + "\n" +
+    "# Individual build type flags"                                                       + "\n" +
     "set(CMAKE_C_FLAGS_RELEASE \"${CMAKE_C_FLAGS} -O2\")"                                 + "\n" +
     "set(CMAKE_C_FLAGS_DEBUG   \"${CMAKE_C_FLAGS} -O0 -g3\")"                             + "\n" +
     "set(CMAKE_C_FLAGS_TEST    \"${CMAKE_C_FLAGS} -O0 -g3 -D__test_build__ --coverage\")" + "\n" +
     ""                                                                                    + "\n" +
-    "add_executable(${PROJECT_NAME} main.c)"                                              + "\n" +
-    ""                                                                                    + "\n" +
     "# List of components"                                                                + "\n" +
     "set(COMPONENTS "                                                                     + "\n" +
     "  )"                                                                                 + "\n" +
+    ""                                                                                    + "\n" +
+    "add_executable(${PROJECT_NAME} main.c)"                                              + "\n" +
     ""                                                                                    + "\n" +
     "# Add component subdirectories using loop"                                           + "\n" +
     "foreach(COMPONENT ${COMPONENTS})"                                                    + "\n" +
@@ -218,7 +282,9 @@ function ProjectCmake()
     ""                                                                                    + "\n" +
     "# Printing the size of build after building"                                         + "\n" +
     "add_custom_command(TARGET ${PROJECT_NAME} "                                          + "\n" +
-    "    POST_BUILD COMMAND size $<TARGET_FILE:${PROJECT_NAME}>)"                         + "\n";
+    "    POST_BUILD COMMAND size $<TARGET_FILE:${PROJECT_NAME}>)"                         + "\n" +
+    ""                                                                                    + "\n" +
+    "# End of root CMakeLists.txt"                                                        + "\n" ;
 
     return content;
 }
@@ -246,7 +312,7 @@ function CppPropertiesJson()
     "        }"                                                                     + "\n" +
     "    ],"                                                                        + "\n" +
     "    \"version\": 4"                                                            + "\n" +
-    "}"                                                                             + "\n";
+    "}"                                                                             + "\n" ;
 
     return content;
 }
@@ -289,7 +355,7 @@ function LaunchJson()
     "        ]"                                                                                   + "\n" +
     "    }"                                                                                       + "\n" +
     "    ]"                                                                                       + "\n" +
-    "}"                                                                                           + "\n";
+    "}"                                                                                           + "\n" ;
 
     return content;
 }
@@ -344,29 +410,7 @@ function TasksJson()
     "            \"command\": \"echo All tasks executed successfully.\""     + "\n" +
     "        }"                                                              + "\n" +
     "    ]"                                                                  + "\n" +
-    "}"                                                                      + "\n";
-
-    return content;
-}
-
-/**
- * Creates the main.c file containing inclusions for stdio and stdint, along
- * with an empty, zero returning main function.
- * 
- * @returns {string}  Contents of main.c
- */
-function MainSource()
-{
-    const content =
-
-    "#include <stdio.h>"     + "\n" +
-    "#include <stdint.h>"    + "\n" +
-    ""                       + "\n" +
-    "int main(void)"         + "\n" +
-    "{"                      + "\n" +
-    "    "                   + "\n" +
-    "    return 0;"          + "\n" +
-    "}"                      + "\n";
+    "}"                                                                      + "\n" ;
 
     return content;
 }

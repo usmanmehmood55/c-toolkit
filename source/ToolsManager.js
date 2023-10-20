@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const os     = require('os');
+const utils  = require('./Utils');
 const { exec, spawn, spawnSync } = require('child_process');
 
 /**
@@ -15,55 +16,12 @@ const BuildTools =
     SCOOP : 'scoop'
 };
 
-/**
- * Enum for OS types
- */
-const OsTypes = 
-{
-    WINDOWS : 'windows',
-    LINUX   : 'linux',
-    MACOS   : 'macos',
-};
-
 const PackageManagers = 
 {
-    [OsTypes.WINDOWS] : 'scoop',
-    [OsTypes.LINUX]   : 'apt-get',
-    [OsTypes.MACOS]   : 'brew',
+    [utils.OsTypes.WINDOWS] : 'scoop',
+    [utils.OsTypes.LINUX]   : 'apt-get',
+    [utils.OsTypes.MACOS]   : 'brew',
 };
-
-/**
- * Checks the OS type, if it is Windows, Linux or MacOS.
- * 
- * @returns {string} enum of OS Type
- */
-function checkOs()
-{
-    switch (os.platform()) 
-    {
-    case 'win32':
-        return OsTypes.WINDOWS;
-    case 'darwin':
-        return OsTypes.MACOS;
-    case 'linux':
-        return OsTypes.LINUX;
-    default:
-        throw new Error('Unsupported OS type');
-    }
-}
-
-/**
- * Formats a list of items into a human-friendly string.
- *
- * @param {string[]} items The list of items to format.
- * @returns {string} A string in the format "item1, item2, ... and lastItem".
- */
-function formatList(items)
-{
-    if (items.length === 0) return '';
-    if (items.length === 1) return items[0];
-    return items.slice(0, items.length - 1).join(', ') + ' and ' + items[items.length - 1];
-}
 
 /**
  * Checks for the presence of a program by using the --version thingy
@@ -235,7 +193,7 @@ function installTool(toolName)
             // Scoop installation has its own function.
             if (toolName === BuildTools.SCOOP) throw new Error("Scoop is not supposed to be installed from installTool() function");
 
-            let installCommand = PackageManagers[checkOs()] || null;
+            let installCommand = PackageManagers[utils.CheckOs()] || null;
             if (installCommand === null) throw new Error('Unsupported OS type');
 
             /**
@@ -299,7 +257,7 @@ async function InstallMultipleTools(tools)
     {
         try
         {
-            if ((tool === BuildTools.GDB) && (checkOs() === OsTypes.MACOS))
+            if ((tool === BuildTools.GDB) && (utils.CheckOs() === utils.OsTypes.MACOS))
             {
                 throw new Error('GDB will not be used for MacOS, instead LLDB support will be added.');
             }
@@ -342,13 +300,13 @@ function processInstallationOutputs(installedTools, failedTools)
             let errorStr = `${eachError.tool} (${eachError.failReason})`;
             failArray.push(errorStr);
         }
-        const failedToolList = formatList(failArray);
+        const failedToolList = utils.FormatList(failArray);
         vscode.window.showErrorMessage(`Failed to install: ${failedToolList}. Please install manually.`);
     }
 
     if (installedTools.length > 0)
     {
-        const installedToolList = formatList(installedTools);
+        const installedToolList = utils.FormatList(installedTools);
         askForRestart(`${installedToolList} installation completed`);
     }
 }
@@ -361,7 +319,7 @@ function processInstallationOutputs(installedTools, failedTools)
  */
 async function askAndInstallMultipleTools(tools)
 {
-    const toolList = formatList(tools);
+    const toolList = utils.FormatList(tools);
     vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No').then(async selection =>
     {
         if (selection === 'Yes')
@@ -384,7 +342,7 @@ async function searchForTools()
     /** @type {string[]} */
     let missingTools = [];
 
-    if (checkOs() === OsTypes.WINDOWS)
+    if (utils.CheckOs() === utils.OsTypes.WINDOWS)
     {
         let scoop = await isToolInPath(BuildTools.SCOOP);
         if (scoop === false)
