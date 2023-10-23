@@ -8,7 +8,7 @@ const BuildState      = buttonActions.BuildState;
 const BuildTypes      = buttonActions.BuildTypes;
 const BuildSubsystems = buttonActions.BuildSubsystems;
 
-let buildState = new BuildState(BuildTypes.RELEASE,  BuildSubsystems.NINJA);
+let buildState = new BuildState(BuildTypes.DEBUG,  BuildSubsystems.NINJA);
 
 /**
  * @param {*} context 

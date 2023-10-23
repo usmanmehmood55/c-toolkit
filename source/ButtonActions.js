@@ -16,9 +16,9 @@ const RUN_TERMINAL_NAME   = "CMake Run";
 
 const BuildTypes = 
 {
-    RELEASE : 'Release',
-    TEST    : 'Test',
     DEBUG   : 'Debug',
+    TEST    : 'Test',
+    RELEASE : 'Release',
 };
 
 const BuildSubsystems = 
@@ -98,7 +98,7 @@ async function askNewBuild(buildState, message)
 async function selectBuild(button, buildState)
 {
     // show a message that lets the user pick between build types
-    let newBuildType = await vscode.window.showQuickPick([BuildTypes.RELEASE, BuildTypes.DEBUG]);
+    let newBuildType = await vscode.window.showQuickPick([BuildTypes.DEBUG, BuildTypes.TEST, BuildTypes.RELEASE]);
 
     // if no selection or the same selection, do not do anything
     if (!newBuildType || newBuildType === buildState.type)
