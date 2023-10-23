@@ -6,6 +6,27 @@ const fileTypeEnum =
     source: 'c',
 };
 
+const LaunchJsonMiMode = 
+{
+    [utils.OsTypes.WINDOWS] : 'gdb',
+    [utils.OsTypes.LINUX]   : 'gdb',
+    [utils.OsTypes.MACOS]   : 'lldb',
+};
+
+const CPropsJsonGccPath = 
+{
+    [utils.OsTypes.WINDOWS] : 'C:/Users/u.mehmood/scoop/apps/gcc/current/bin/gcc',
+    [utils.OsTypes.LINUX]   : '/usr/bin/gcc',
+    [utils.OsTypes.MACOS]   : '/usr/bin/gcc',
+};
+
+const intelliSenseMode = 
+{
+    [utils.OsTypes.WINDOWS] : 'windows-gcc-x64',
+    [utils.OsTypes.LINUX]   : 'linux-gcc-x64',
+    [utils.OsTypes.MACOS]   : 'macos-gcc-x64',
+};
+
 /**
  * Creates a CMakeLists file for a component with references to its header, source, mock and test files.
  * 
@@ -298,21 +319,18 @@ function ProjectCmake()
  */
 function CppPropertiesJson()
 {
-    const gccPath = (utils.CheckOs() === utils.OsTypes.WINDOWS) ? 
-        'C:/msys64/mingw64/bin/gcc.exe' : '/usr/bin/gcc';
-
     let content =
     
     "{"                                                                             + "\n" +
     "    \"configurations\":"                                                       + "\n" +
     "    ["                                                                         + "\n" +
     "        {"                                                                     + "\n" +
-    "            \"name\"            : \"MinGW GCC\","                              + "\n" +
+    "            \"name\"            : \"c-toolkit config\","                       + "\n" +
     "            \"includePath\"     : [ \"${workspaceFolder}/**\" ],"              + "\n" +
-    `            \"compilerPath\"    : \"${gccPath}\",`                             + "\n" +
+    `            \"compilerPath\"    : \"${CPropsJsonGccPath[utils.CheckOs()]}\",`  + "\n" +
     "            \"cStandard\"       : \"c11\","                                    + "\n" +
     "            \"cppStandard\"     : \"c++11\","                                  + "\n" +
-    "            \"intelliSenseMode\": \"windows-gcc-x64\","                        + "\n" +
+    `            \"intelliSenseMode\": \"${intelliSenseMode[utils.CheckOs()]}\",`   + "\n" +
     "            \"compileCommands\" : \"build/compile_commands.json\""             + "\n" +
     "        }"                                                                     + "\n" +
     "    ],"                                                                        + "\n" +
@@ -332,11 +350,6 @@ function LaunchJson()
     const programPath = ('${workspaceRoot}/build/${workspaceFolderBasename}' + 
         ((utils.CheckOs() === utils.OsTypes.WINDOWS) ? '.exe' : ''));
 
-    const miMode = (utils.CheckOs() === utils.OsTypes.MACOS) ? 'lldb' : 'gdb';
-
-    const miDebuggerPath = (utils.CheckOs() === utils.OsTypes.WINDOWS) ? 
-        'C:/msys64/mingw64/bin/gdb.exe' : '/usr/bin/gdb';
-
     let contentStart = 
     
     "{"                                                                                           + "\n" +
@@ -351,11 +364,10 @@ function LaunchJson()
     "        \"cwd\"            : \"${workspaceRoot}\","                                          + "\n" +
     "        \"environment\"    : [],"                                                            + "\n" +
     "        \"externalConsole\": false,"                                                         + "\n" +
-    `        \"MIMode\"         : \"${miMode}\",`                                                 + "\n" ;
-
+    `        \"MIMode\"         : \"${LaunchJsonMiMode[utils.CheckOs()]}\",`                      + "\n" ;
 
     let contentMid =
-    `        \"miDebuggerPath\" : \"${miDebuggerPath}\",`                                         + "\n" +
+    `        \"miDebuggerPath\" : \"gdb\",`                                                       + "\n" +
     "        \"setupCommands\"  : "                                                               + "\n" +
     "        ["                                                                                   + "\n" +
     "            {"                                                                               + "\n" +
