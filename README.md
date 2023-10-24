@@ -3,6 +3,8 @@
 A VSCode extension to help create, build, run, debug and test C projects
 using CMake.
 
+![banner](images/banner.jpg)
+
 ## Features
 
 - Status bar buttons.
@@ -42,9 +44,8 @@ Seven status bar buttons have been implemented to:
 ## Missing Build Tools
 
 The extension checks if the required build tools are installed by trying to
-execute `tool --version`. If the tool is not installed or is not included in
-the `PATH`, the error is detected by the extension and it then offers to
-install the missing tools.
+find them in the `PATH`, if any of them is not detected by the extension it
+then offers to install the missing tools.
 
 ![Asks the user for installation of tools](images/tools_ask_installation.PNG)
 

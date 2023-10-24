@@ -1,7 +1,30 @@
+const utils  = require('./Utils');
+
 const fileTypeEnum = 
 {
     header: 'h',
     source: 'c',
+};
+
+const LaunchJsonMiMode = 
+{
+    [utils.OsTypes.WINDOWS] : 'gdb',
+    [utils.OsTypes.LINUX]   : 'gdb',
+    [utils.OsTypes.MACOS]   : 'lldb',
+};
+
+const CPropsJsonGccPath = 
+{
+    [utils.OsTypes.WINDOWS] : 'C:/Users/u.mehmood/scoop/apps/gcc/current/bin/gcc',
+    [utils.OsTypes.LINUX]   : '/usr/bin/gcc',
+    [utils.OsTypes.MACOS]   : '/usr/bin/gcc',
+};
+
+const intelliSenseMode = 
+{
+    [utils.OsTypes.WINDOWS] : 'windows-gcc-x64',
+    [utils.OsTypes.LINUX]   : 'linux-gcc-x64',
+    [utils.OsTypes.MACOS]   : 'macos-gcc-x64',
 };
 
 /**
@@ -302,12 +325,12 @@ function CppPropertiesJson()
     "    \"configurations\":"                                                       + "\n" +
     "    ["                                                                         + "\n" +
     "        {"                                                                     + "\n" +
-    "            \"name\"            : \"MinGW GCC\","                              + "\n" +
+    "            \"name\"            : \"c-toolkit config\","                       + "\n" +
     "            \"includePath\"     : [ \"${workspaceFolder}/**\" ],"              + "\n" +
-    "            \"compilerPath\"    : \"C:/msys64/mingw64/bin/gcc.exe\","          + "\n" +
-    "            \"cStandard\"       : \"gnu17\","                                  + "\n" +
-    "            \"cppStandard\"     : \"gnu++17\","                                + "\n" +
-    "            \"intelliSenseMode\": \"windows-gcc-x64\","                        + "\n" +
+    `            \"compilerPath\"    : \"${CPropsJsonGccPath[utils.CheckOs()]}\",`  + "\n" +
+    "            \"cStandard\"       : \"c11\","                                    + "\n" +
+    "            \"cppStandard\"     : \"c++11\","                                  + "\n" +
+    `            \"intelliSenseMode\": \"${intelliSenseMode[utils.CheckOs()]}\",`   + "\n" +
     "            \"compileCommands\" : \"build/compile_commands.json\""             + "\n" +
     "        }"                                                                     + "\n" +
     "    ],"                                                                        + "\n" +
@@ -324,7 +347,10 @@ function CppPropertiesJson()
  */
 function LaunchJson()
 {
-    let content = 
+    const programPath = ('${workspaceRoot}/build/${workspaceFolderBasename}' + 
+        ((utils.CheckOs() === utils.OsTypes.WINDOWS) ? '.exe' : ''));
+
+    let contentStart = 
     
     "{"                                                                                           + "\n" +
     "    \"configurations\": ["                                                                   + "\n" +
@@ -332,14 +358,16 @@ function LaunchJson()
     "        \"name\"           : \"c-toolkit launch\","                                          + "\n" +
     "        \"type\"           : \"cppdbg\","                                                    + "\n" +
     "        \"request\"        : \"launch\","                                                    + "\n" +
-    "        \"program\"        : \"${workspaceRoot}/build/${workspaceFolderBasename}.exe\","     + "\n" +
+    `        \"program\"        : \"${programPath}\",`                                            + "\n" +
     "        \"args\"           : [],"                                                            + "\n" +
     "        \"stopAtEntry\"    : false,"                                                         + "\n" +
     "        \"cwd\"            : \"${workspaceRoot}\","                                          + "\n" +
     "        \"environment\"    : [],"                                                            + "\n" +
     "        \"externalConsole\": false,"                                                         + "\n" +
-    "        \"MIMode\"         : \"gdb\","                                                       + "\n" +
-    "        \"miDebuggerPath\" : \"C:/msys64/mingw64/bin/gdb.exe\","                             + "\n" +
+    `        \"MIMode\"         : \"${LaunchJsonMiMode[utils.CheckOs()]}\",`                      + "\n" ;
+
+    let contentMid =
+    `        \"miDebuggerPath\" : \"gdb\",`                                                       + "\n" +
     "        \"setupCommands\"  : "                                                               + "\n" +
     "        ["                                                                                   + "\n" +
     "            {"                                                                               + "\n" +
@@ -352,10 +380,16 @@ function LaunchJson()
     "                \"text\"          : \"-gdb-set disassembly-flavor intel\","                  + "\n" +
     "                \"ignoreFailures\": true"                                                    + "\n" +
     "            }"                                                                               + "\n" +
-    "        ]"                                                                                   + "\n" +
+    "        ]"                                                                                   + "\n" ;
+
+    let contentEnd =
+
     "    }"                                                                                       + "\n" +
     "    ]"                                                                                       + "\n" +
     "}"                                                                                           + "\n" ;
+
+    let content = (utils.CheckOs() === utils.OsTypes.MACOS) ? 
+        (contentStart + contentEnd) : (contentStart + contentMid + contentEnd);
 
     return content;
 }
@@ -377,6 +411,9 @@ function SettingsJson()
  */
 function TasksJson()
 {
+    const programPath = ('./build/${workspaceFolderBasename}' +  
+        ((utils.CheckOs() === utils.OsTypes.WINDOWS) ? '.exe' : ''));
+
     const content =
 
     "{"                                                                      + "\n" +
@@ -396,7 +433,7 @@ function TasksJson()
     "        {"                                                              + "\n" +
     "            \"label\"  : \"run_executable\","                           + "\n" +
     "            \"type\"   : \"shell\","                                    + "\n" +
-    "            \"command\": \"./build/${workspaceFolderBasename}.exe\""    + "\n" +
+    `            \"command\": \"${programPath}\"`                            + "\n" +
     "        },"                                                             + "\n" +
     "        {"                                                              + "\n" +
     "            \"label\"  : \"build_and_run\","                            + "\n" +
