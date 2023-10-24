@@ -46,7 +46,7 @@ async function isToolInPath(toolName)
             {
                 resolve(true);
             }
-            console.log(`error: ${error}, stdout: ${stdout}, stderr: ${stderr}`);
+            console.log(`isToolInPath - error: ${error}, stdout: ${stdout}, stderr: ${stderr}`);
         });
     });
 }
@@ -68,12 +68,12 @@ const installScoop = () =>
 
         process.stdout.on('data', (data) => 
         {
-            console.log(`stdout: ${data}`);
+            console.log(`installScoop - stdout: ${data}`);
         });
 
         process.stderr.on('data', (data) => 
         {
-            console.error(`stderr: ${data}`);
+            console.error(`installScoop - stderr: ${data}`);
         });
 
         process.on('close', (code) => 
@@ -132,9 +132,9 @@ async function askAndInstallScoop()
 /**
  * Executes a specified command with provided arguments.
  * 
- * @param {string?} userPassword Password provided by the user for tool installation.
- * @param {string} command The command to execute.
- * @param {string[]} args The arguments for the command.
+ * @param {string?}  userPassword Password provided by the user for tool installation.
+ * @param {string}   command      The command to execute.
+ * @param {string[]} args         The arguments for the command.
  * 
  * @returns {string} Stdout string if it passes.
  */
@@ -146,7 +146,7 @@ function execCommand(userPassword, command, args)
         args = ['/c', 'scoop', ...args];
     }
 
-    console.log(`Executing: ${command} ${args.join(' ')}`);
+    console.log(`execCommand - Executing: ${command} ${args.join(' ')}`);
 
     const process = spawnSync(command, args, { input: Buffer.from(`${userPassword}\n`, "utf-8"), });
 
@@ -157,12 +157,12 @@ function execCommand(userPassword, command, args)
     // Log the outputs
     if (stdout)
     {
-        console.log(`stdout: ${stdout}`);
+        console.log(`execCommand - stdout: ${stdout}`);
     }
 
     if (stderr)
     {
-        console.error(`stderr: ${stderr}`);
+        console.error(`execCommand - stderr: ${stderr}`);
     }
 
     if (process.status !== 0)
@@ -176,7 +176,7 @@ function execCommand(userPassword, command, args)
 /**
  * Initiates the installation of a specified tool by using the appropriate tool manager.
  * 
- * @param {string} toolName The name of the tool to install.
+ * @param {string}  toolName     The name of the tool to install.
  * @param {string?} userPassword Password provided by the user for tool installation.
  * 
  * @returns {Thenable<boolean>} I don't know what this is. I miss C where bool is literally an int.
@@ -260,8 +260,8 @@ function askForRestart(restartReason)
  * it asks the user if they want to restart VSCode. If allowed, it restarts VSCode. 
  * If any tools fail to install, it notifies the user about those tools.
  * 
- * @param {string[]} tools An array containing names of the tools to install.
- * @param {string?} userPassword Password provided by the user for tool installation.
+ * @param {string[]} tools        An array containing names of the tools to install.
+ * @param {string?}  userPassword Password provided by the user for tool installation.
  */
 async function InstallMultipleTools(tools, userPassword)
 {
@@ -275,11 +275,6 @@ async function InstallMultipleTools(tools, userPassword)
     {
         try
         {
-            if ((tool === BuildTools.GDB) && (utils.CheckOs() === utils.OsTypes.MACOS))
-            {
-                throw new Error('GDB will not be used for MacOS, instead LLDB support will be added.');
-            }
-
             let selection = await installTool(tool, userPassword);
             if (selection === true)
             {
@@ -304,8 +299,11 @@ async function InstallMultipleTools(tools, userPassword)
  * For now, this strange logic handles the failed installation messages thrown by multiple failed
  * installations, while also showing the user why the individual installation failed.
  * 
- * @param {string[]} installedTools
- * @param {Array<{tool: string, failReason: string}>} failedTools
+ * @param {string[]} installedTools 
+ * Array containing names of the tools for which installations passed.
+ * 
+ * @param {Array<{tool: string, failReason: string}>} failedTools 
+ * Array containing names and fail reasons of tools for which installations failed.
  */
 function processInstallationOutputs(installedTools, failedTools)
 {
