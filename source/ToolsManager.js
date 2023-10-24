@@ -131,12 +131,13 @@ async function askAndInstallScoop()
 /**
  * Executes a specified command with provided arguments.
  * 
+ * @param {string?} userPassword Password provided by the user for tool installation.
  * @param {string} command The command to execute.
  * @param {string[]} args The arguments for the command.
  * 
  * @returns {string} Stdout string if it passes.
  */
-function execCommand(command, args)
+function execCommand(userPassword, command, args)
 {
     if (command === 'scoop')
     {
@@ -145,7 +146,8 @@ function execCommand(command, args)
     }
 
     console.log(`Executing: ${command} ${args.join(' ')}`);
-    const process = spawnSync(command, args);
+
+    const process = spawnSync(command, args, { input: Buffer.from(`${userPassword}\n`, "utf-8"), });
 
     // Convert Buffer to String
     const stdout = process.stdout ? process.stdout.toString() : '';
@@ -174,10 +176,11 @@ function execCommand(command, args)
  * Initiates the installation of a specified tool by using the appropriate tool manager.
  * 
  * @param {string} toolName The name of the tool to install.
+ * @param {string?} userPassword Password provided by the user for tool installation.
  * 
  * @returns {Thenable<boolean>} I don't know what this is. I miss C where bool is literally an int.
  */
-function installTool(toolName)
+function installTool(toolName, userPassword)
 {
     return vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
@@ -203,9 +206,22 @@ function installTool(toolName)
             const installArgs = ['install', toolName];
 
             // this has not been tested yet.
-            if (installCommand === 'apt-get') installArgs.unshift('sudo');
+            if (installCommand === 'apt-get')
+            {
+                // sanity check
+                if (userPassword === undefined) throw new Error('No password was provided to installTool while using apt.');
 
-            execCommand(installCommand, installArgs);
+                installCommand = 'sudo';
+                installArgs.unshift('apt-get');
+                installArgs.unshift('-S');
+                installArgs.push('-y');
+
+                // in APT, 'ninja' is 'ninja-build'
+                const indexOfNinja = installArgs.indexOf('ninja');
+                if (indexOfNinja !== -1) installArgs[indexOfNinja] = 'ninja-build';
+            }
+
+            execCommand(userPassword, installCommand, installArgs);
             isInstalled = true;
             progress.report({ message: `Finalizing...` });
         }
@@ -244,8 +260,9 @@ function askForRestart(restartReason)
  * If any tools fail to install, it notifies the user about those tools.
  * 
  * @param {string[]} tools An array containing names of the tools to install.
+ * @param {string?} userPassword Password provided by the user for tool installation.
  */
-async function InstallMultipleTools(tools)
+async function InstallMultipleTools(tools, userPassword)
 {
     /** @type {string[]} */
     let installedTools = [];
@@ -262,7 +279,7 @@ async function InstallMultipleTools(tools)
                 throw new Error('GDB will not be used for MacOS, instead LLDB support will be added.');
             }
 
-            let selection = await installTool(tool);
+            let selection = await installTool(tool, userPassword);
             if (selection === true)
             {
                 installedTools.push(tool);
@@ -312,6 +329,30 @@ function processInstallationOutputs(installedTools, failedTools)
 }
 
 /**
+ * Asks the user their sudo password to allow for tools installation.
+ * 
+ * @returns {Promise<string>} User's password
+ */
+async function askForPassword()
+{
+    // Ask the user about the project name
+    let passwordAsker = await vscode.window.showInputBox({
+        prompt     : 'Please enter your sudo password, it is required to to install the tools.',
+        value      : undefined,
+        placeHolder: 'your password',
+        password   : true,
+    });
+
+    if (!passwordAsker)
+    {
+        vscode.window.showErrorMessage('Superuser access is required to install the missing tools.');
+        return;
+    }
+
+    return passwordAsker;
+}
+
+/**
  * Prompts the user for installing a list of tools. If the user agrees, initiates the installation for each.
  * Displays a warning if the user declines, indicating the tools need to be manually installed.
  * 
@@ -324,7 +365,13 @@ async function askAndInstallMultipleTools(tools)
     {
         if (selection === 'Yes')
         {
-            InstallMultipleTools(tools);
+            /** @type {string} */
+            let userPassword = undefined;
+            if (utils.CheckOs() === utils.OsTypes.LINUX)
+            {
+                userPassword = await askForPassword();
+            }
+            InstallMultipleTools(tools, userPassword);
         }
         else if (selection === 'No')
         {
