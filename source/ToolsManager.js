@@ -13,7 +13,8 @@ const BuildTools =
     CMAKE : 'cmake',
     NINJA : 'ninja',
     MAKE  : 'make',
-    SCOOP : 'scoop'
+    SCOOP : 'scoop',
+    GIT   : 'git',
 };
 
 const PackageManagers = 
@@ -399,7 +400,7 @@ async function searchForTools()
         }
     }
 
-    let toolsToCheck = [BuildTools.GCC, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE];
+    let toolsToCheck = [BuildTools.GCC, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE, BuildTools.GIT];
     if (utils.CheckOs() !== utils.OsTypes.MACOS) 
     {
         toolsToCheck.push(BuildTools.GDB);
