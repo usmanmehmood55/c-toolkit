@@ -33,7 +33,7 @@ const PackageManagers =
  */
 async function isToolInPath(toolName)
 {
-    toolName = toolName === BuildTools.SCOOP ? `${os.homedir()}\\scoop\\shims\\scoop` : toolName;
+    toolName = toolName === BuildTools.SCOOP ? `${utils.WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop` : toolName;
     return new Promise((resolve, reject) => 
     {
         exec(`${toolName} --version`, (error, stdout, stderr) => 
