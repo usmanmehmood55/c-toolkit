@@ -13,13 +13,6 @@ const LaunchJsonMiMode =
     [utils.OsTypes.MACOS]   : 'lldb',
 };
 
-const CPropsJsonGccPath = 
-{
-    [utils.OsTypes.WINDOWS] : 'C:/Users/u.mehmood/scoop/apps/gcc/current/bin/gcc',
-    [utils.OsTypes.LINUX]   : '/usr/bin/gcc',
-    [utils.OsTypes.MACOS]   : '/usr/bin/gcc',
-};
-
 const intelliSenseMode = 
 {
     [utils.OsTypes.WINDOWS] : 'windows-gcc-x64',
@@ -319,6 +312,8 @@ function ProjectCmake()
  */
 function CppPropertiesJson()
 {
+    const gccPath = utils.FindProgramPath('gcc');
+
     let content =
     
     "{"                                                                             + "\n" +
@@ -327,7 +322,7 @@ function CppPropertiesJson()
     "        {"                                                                     + "\n" +
     "            \"name\"            : \"c-toolkit config\","                       + "\n" +
     "            \"includePath\"     : [ \"${workspaceFolder}/**\" ],"              + "\n" +
-    `            \"compilerPath\"    : \"${CPropsJsonGccPath[utils.CheckOs()]}\",`  + "\n" +
+    `            \"compilerPath\"    : \"${gccPath}\",`                             + "\n" +
     "            \"cStandard\"       : \"c11\","                                    + "\n" +
     "            \"cppStandard\"     : \"c++11\","                                  + "\n" +
     `            \"intelliSenseMode\": \"${intelliSenseMode[utils.CheckOs()]}\",`   + "\n" +
