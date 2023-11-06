@@ -1,7 +1,8 @@
 const vscode = require('vscode');
 const os     = require('os');
 const utils  = require('./Utils');
-const { exec, spawn, spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
+const { execSync } = require('child_process');
 
 /**
  * Enum for build tools required
@@ -34,21 +35,17 @@ const PackageManagers =
 async function isToolInPath(toolName)
 {
     toolName = toolName === BuildTools.SCOOP ? `${utils.WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop` : toolName;
-    return new Promise((resolve, reject) => 
+    
+
+    try
     {
-        exec(`${toolName} --version`, (error, stdout, stderr) => 
-        {
-            if (error) 
-            {
-                resolve(false);
-            }
-            else
-            {
-                resolve(true);
-            }
-            console.log(`isToolInPath - error: ${error}, stdout: ${stdout}, stderr: ${stderr}`);
-        });
-    });
+        execSync(versionCommand, { stdio: 'ignore' });
+        return true;
+    }
+    catch (error)
+    {
+        return false;
+    }
 }
 
 /**
@@ -143,7 +140,7 @@ function execCommand(userPassword, command, args)
     if (command === 'scoop')
     {
         command = 'cmd';
-        args = ['/c', 'scoop', ...args];
+        args = ['/c', `${utils.WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop`, ...args];
     }
 
     console.log(`execCommand - Executing: ${command} ${args.join(' ')}`);
