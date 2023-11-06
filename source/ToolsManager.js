@@ -16,6 +16,7 @@ const BuildTools =
     MAKE  : 'make',
     SCOOP : 'scoop',
     GIT   : 'git',
+    BBOX  : 'busybox',
 };
 
 const PackageManagers = 
@@ -36,6 +37,8 @@ async function isToolInPath(toolName)
 {
     toolName = toolName === BuildTools.SCOOP ? `${utils.WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop` : toolName;
     
+    // Busybox does not support '--version' argument so this case ahs been added for it
+    const versionCommand = toolName === BuildTools.BBOX ? toolName : `${toolName} --version`;
 
     try
     {
@@ -396,10 +399,8 @@ async function searchForTools()
     }
 
     let toolsToCheck = [BuildTools.GCC, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE, BuildTools.GIT];
-    if (utils.CheckOs() !== utils.OsTypes.MACOS) 
-    {
-        toolsToCheck.push(BuildTools.GDB);
-    }
+    if (utils.CheckOs() !== utils.OsTypes.MACOS) toolsToCheck.push(BuildTools.GDB);
+    if (utils.CheckOs() === utils.OsTypes.WINDOWS) toolsToCheck.push(BuildTools.BBOX);
 
     let results = await Promise.all(toolsToCheck.map(tool => isToolInPath(tool)));
 

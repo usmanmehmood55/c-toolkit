@@ -210,6 +210,8 @@ async function invokeBuild(buildState)
         // wait until build has completed
     }
 
+    if (fs.existsSync(BUILD_MARKER_PATH)) fs.rmSync(BUILD_MARKER_PATH);
+
     delay(10); // wese hi
 }
 
