@@ -1,6 +1,7 @@
 const os     = require('os');
 const vscode = require('vscode');
 const path   = require('path');
+const { execSync } = require('child_process');
 
 /**
  * Enum for OS types
@@ -94,11 +95,32 @@ function SanitizeFileName(name)
     return invalidRemoved;
 }
 
+/**
+ * Finds the path of the given program using the 'which' command.
+ * 
+ * @param {string} program The program to find.
+ * 
+ * @returns {string | undefined} The path to the program or undefined if not found.
+ */
+function FindProgramPath(program)
+{
+    try
+    {
+        const path = execSync(`which ${program}`, { encoding: 'utf-8' }).trim();
+        return path;
+    }
+    catch (error)
+    {
+        return undefined;
+    }
+}
+
 module.exports =
 {
     FormatList,
     SanitizeFileName,
     OsTypes,
     CheckOs,
-    WrapSpacedComponents
+    WrapSpacedComponents,
+    FindProgramPath,
 };

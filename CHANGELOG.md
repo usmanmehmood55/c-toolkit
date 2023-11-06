@@ -1,5 +1,48 @@
 # Change Log
 
+## [v0.2.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.1)
+
+### Improvements
+
+- IntelliSense settings now have the correct GCC path.
+- Added [Busybox](https://busybox.net/) to installation tools on Windows
+  to access common Unix tools.
+
+### Fixes
+
+- On Windows, if the username had a space in it, eg `John Doe` instead of
+  `JohnDoe` or `j.doe`, Scoop would not be detected, and any tools installed
+  by Scoop would also not be detected. This has been fixed.
+
+### Known Issues
+
+- Extension doesn't activate when a folder isn't open in the workspace.
+
+## [v0.2.1](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.1)
+
+### Features
+
+- Extension icon updated.
+- Added git to installation tools.
+
+### Improvements
+
+- Added special cases in file and code generation for MacOS.
+- Default build type set to Debug.
+- Test build type also added in selection button.
+- User can now provide sudo password for tool installation on Linux.
+- Improved logs.
+
+### Fixes
+
+- Used LLDB instead GDB on MacOS, debugging works on MacOS now.
+- Fixed tools installation on Linux.
+- Scoop detection failing on systems with spaces in account username.
+
+### Known Issues
+
+- Extension doesn't activate when a folder isn't open in the workspace.
+
 ## [v0.1.3](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.1.3)
 
 ### Features

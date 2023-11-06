@@ -1,7 +1,8 @@
 const vscode = require('vscode');
 const os     = require('os');
 const utils  = require('./Utils');
-const { exec, spawn, spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
+const { execSync } = require('child_process');
 
 /**
  * Enum for build tools required
@@ -15,6 +16,7 @@ const BuildTools =
     MAKE  : 'make',
     SCOOP : 'scoop',
     GIT   : 'git',
+    BBOX  : 'busybox',
 };
 
 const PackageManagers = 
@@ -34,21 +36,19 @@ const PackageManagers =
 async function isToolInPath(toolName)
 {
     toolName = toolName === BuildTools.SCOOP ? `${utils.WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop` : toolName;
-    return new Promise((resolve, reject) => 
+    
+    // Busybox does not support '--version' argument so this case ahs been added for it
+    const versionCommand = toolName === BuildTools.BBOX ? toolName : `${toolName} --version`;
+
+    try
     {
-        exec(`${toolName} --version`, (error, stdout, stderr) => 
-        {
-            if (error) 
-            {
-                resolve(false);
-            }
-            else
-            {
-                resolve(true);
-            }
-            console.log(`isToolInPath - error: ${error}, stdout: ${stdout}, stderr: ${stderr}`);
-        });
-    });
+        execSync(versionCommand, { stdio: 'ignore' });
+        return true;
+    }
+    catch (error)
+    {
+        return false;
+    }
 }
 
 /**
@@ -143,7 +143,7 @@ function execCommand(userPassword, command, args)
     if (command === 'scoop')
     {
         command = 'cmd';
-        args = ['/c', 'scoop', ...args];
+        args = ['/c', `${utils.WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop`, ...args];
     }
 
     console.log(`execCommand - Executing: ${command} ${args.join(' ')}`);
@@ -399,10 +399,8 @@ async function searchForTools()
     }
 
     let toolsToCheck = [BuildTools.GCC, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE, BuildTools.GIT];
-    if (utils.CheckOs() !== utils.OsTypes.MACOS) 
-    {
-        toolsToCheck.push(BuildTools.GDB);
-    }
+    if (utils.CheckOs() !== utils.OsTypes.MACOS) toolsToCheck.push(BuildTools.GDB);
+    if (utils.CheckOs() === utils.OsTypes.WINDOWS) toolsToCheck.push(BuildTools.BBOX);
 
     let results = await Promise.all(toolsToCheck.map(tool => isToolInPath(tool)));
 
