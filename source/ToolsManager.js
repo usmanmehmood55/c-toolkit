@@ -1,8 +1,8 @@
 const vscode = require('vscode');
 const os     = require('os');
-const utils  = require('./Utils');
-const { spawn, spawnSync } = require('child_process');
 const { execSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
+const { OsTypes, CheckOs, FormatList, WrapSpacedComponents } = require('./CommonUtils');
 
 /**
  * Enum for build tools required
@@ -19,11 +19,14 @@ const BuildTools =
     BBOX  : 'busybox',
 };
 
+/**
+ * Enum for package managers
+ */
 const PackageManagers = 
 {
-    [utils.OsTypes.WINDOWS] : 'scoop',
-    [utils.OsTypes.LINUX]   : 'apt-get',
-    [utils.OsTypes.MACOS]   : 'brew',
+    [OsTypes.WINDOWS] : 'scoop',
+    [OsTypes.LINUX]   : 'apt-get',
+    [OsTypes.MACOS]   : 'brew',
 };
 
 /**
@@ -35,8 +38,8 @@ const PackageManagers =
  */
 async function isToolInPath(toolName)
 {
-    toolName = toolName === BuildTools.SCOOP ? `${utils.WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop` : toolName;
-    
+    toolName = toolName === BuildTools.SCOOP ? `${WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop` : toolName;
+
     // Busybox does not support '--version' argument so this case ahs been added for it
     const versionCommand = toolName === BuildTools.BBOX ? toolName : `${toolName} --version`;
 
@@ -105,7 +108,7 @@ async function askAndInstallScoop()
                 location: vscode.ProgressLocation.Notification,
                 title: `Installing ${toolName}`,
                 cancellable: false
-            }, async (progress, token) =>
+            }, async (progress, token) => // eslint-disable-line no-unused-vars
             {
                 progress.report({ message: `In Progress...` });
                 try
@@ -143,7 +146,7 @@ function execCommand(userPassword, command, args)
     if (command === 'scoop')
     {
         command = 'cmd';
-        args = ['/c', `${utils.WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop`, ...args];
+        args = ['/c', `${WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop`, ...args];
     }
 
     console.log(`execCommand - Executing: ${command} ${args.join(' ')}`);
@@ -187,7 +190,7 @@ function installTool(toolName, userPassword)
         location: vscode.ProgressLocation.Notification,
         title: `Installing ${toolName}`,
         cancellable: false
-    }, async (progress, token) =>
+    }, async (progress, token) => // eslint-disable-line no-unused-vars
     {
         let isInstalled = false;
         progress.report({ message: `In Progress...` });
@@ -197,7 +200,7 @@ function installTool(toolName, userPassword)
             // Scoop installation has its own function.
             if (toolName === BuildTools.SCOOP) throw new Error("Scoop is not supposed to be installed from installTool() function");
 
-            let installCommand = PackageManagers[utils.CheckOs()] || null;
+            let installCommand = PackageManagers[CheckOs()] || null;
             if (installCommand === null) throw new Error('Unsupported OS type');
 
             /**
@@ -316,13 +319,13 @@ function processInstallationOutputs(installedTools, failedTools)
             let errorStr = `${eachError.tool} (${eachError.failReason})`;
             failArray.push(errorStr);
         }
-        const failedToolList = utils.FormatList(failArray);
+        const failedToolList = FormatList(failArray);
         vscode.window.showErrorMessage(`Failed to install: ${failedToolList}. Please install manually.`);
     }
 
     if (installedTools.length > 0)
     {
-        const installedToolList = utils.FormatList(installedTools);
+        const installedToolList = FormatList(installedTools);
         askForRestart(`${installedToolList} installation completed`);
     }
 }
@@ -359,14 +362,14 @@ async function askForPassword()
  */
 async function askAndInstallMultipleTools(tools)
 {
-    const toolList = utils.FormatList(tools);
+    const toolList = FormatList(tools);
     vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No').then(async selection =>
     {
         if (selection === 'Yes')
         {
             /** @type {string} */
             let userPassword = undefined;
-            if (utils.CheckOs() === utils.OsTypes.LINUX)
+            if (CheckOs() === OsTypes.LINUX)
             {
                 userPassword = await askForPassword();
             }
@@ -388,7 +391,7 @@ async function searchForTools()
     /** @type {string[]} */
     let missingTools = [];
 
-    if (utils.CheckOs() === utils.OsTypes.WINDOWS)
+    if (CheckOs() === OsTypes.WINDOWS)
     {
         let scoop = await isToolInPath(BuildTools.SCOOP);
         if (scoop === false)
@@ -399,8 +402,8 @@ async function searchForTools()
     }
 
     let toolsToCheck = [BuildTools.GCC, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE, BuildTools.GIT];
-    if (utils.CheckOs() !== utils.OsTypes.MACOS) toolsToCheck.push(BuildTools.GDB);
-    if (utils.CheckOs() === utils.OsTypes.WINDOWS) toolsToCheck.push(BuildTools.BBOX);
+    if (CheckOs() !== OsTypes.MACOS) toolsToCheck.push(BuildTools.GDB);
+    if (CheckOs() === OsTypes.WINDOWS) toolsToCheck.push(BuildTools.BBOX);
 
     let results = await Promise.all(toolsToCheck.map(tool => isToolInPath(tool)));
 

@@ -2,7 +2,7 @@ const fs           = require('fs');
 const path         = require('path');
 const vscode       = require('vscode');
 const fileContents = require('./FileContents');
-const utils        = require('./Utils');
+const { SanitizeFileName } = require('./CommonUtils');
 
 let createComponentDisposable;
 
@@ -44,7 +44,7 @@ async function SelectComponentProperties(component)
     let componentName = await vscode.window.showInputBox({ prompt: 'Enter the name of the new component' });
     if (componentName !== undefined)
     {
-        component.name = utils.SanitizeFileName(componentName);
+        component.name = SanitizeFileName(componentName);
     }
     else
     {

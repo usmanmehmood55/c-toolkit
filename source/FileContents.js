@@ -1,4 +1,4 @@
-const utils  = require('./Utils');
+const { OsTypes, CheckOs, FindProgramPath }  = require('./CommonUtils');
 
 const fileTypeEnum = 
 {
@@ -8,16 +8,16 @@ const fileTypeEnum =
 
 const LaunchJsonMiMode = 
 {
-    [utils.OsTypes.WINDOWS] : 'gdb',
-    [utils.OsTypes.LINUX]   : 'gdb',
-    [utils.OsTypes.MACOS]   : 'lldb',
+    [OsTypes.WINDOWS] : 'gdb',
+    [OsTypes.LINUX]   : 'gdb',
+    [OsTypes.MACOS]   : 'lldb',
 };
 
 const intelliSenseMode = 
 {
-    [utils.OsTypes.WINDOWS] : 'windows-gcc-x64',
-    [utils.OsTypes.LINUX]   : 'linux-gcc-x64',
-    [utils.OsTypes.MACOS]   : 'macos-gcc-x64',
+    [OsTypes.WINDOWS] : 'windows-gcc-x64',
+    [OsTypes.LINUX]   : 'linux-gcc-x64',
+    [OsTypes.MACOS]   : 'macos-gcc-x64',
 };
 
 /**
@@ -312,7 +312,7 @@ function ProjectCmake()
  */
 function CppPropertiesJson()
 {
-    const gccPath = utils.FindProgramPath('gcc');
+    const gccPath = FindProgramPath('gcc');
 
     let content =
     
@@ -325,7 +325,7 @@ function CppPropertiesJson()
     `            \"compilerPath\"    : \"${gccPath}\",`                             + "\n" +
     "            \"cStandard\"       : \"c11\","                                    + "\n" +
     "            \"cppStandard\"     : \"c++11\","                                  + "\n" +
-    `            \"intelliSenseMode\": \"${intelliSenseMode[utils.CheckOs()]}\",`   + "\n" +
+    `            \"intelliSenseMode\": \"${intelliSenseMode[CheckOs()]}\",`         + "\n" +
     "            \"compileCommands\" : \"build/compile_commands.json\""             + "\n" +
     "        }"                                                                     + "\n" +
     "    ],"                                                                        + "\n" +
@@ -343,7 +343,7 @@ function CppPropertiesJson()
 function LaunchJson()
 {
     const programPath = ('${workspaceRoot}/build/${workspaceFolderBasename}' + 
-        ((utils.CheckOs() === utils.OsTypes.WINDOWS) ? '.exe' : ''));
+        ((CheckOs() === OsTypes.WINDOWS) ? '.exe' : ''));
 
     let contentStart = 
     
@@ -359,7 +359,7 @@ function LaunchJson()
     "        \"cwd\"            : \"${workspaceRoot}\","                                          + "\n" +
     "        \"environment\"    : [],"                                                            + "\n" +
     "        \"externalConsole\": false,"                                                         + "\n" +
-    `        \"MIMode\"         : \"${LaunchJsonMiMode[utils.CheckOs()]}\",`                      + "\n" ;
+    `        \"MIMode\"         : \"${LaunchJsonMiMode[CheckOs()]}\",`                            + "\n" ;
 
     let contentMid =
     `        \"miDebuggerPath\" : \"gdb\",`                                                       + "\n" +
@@ -383,7 +383,7 @@ function LaunchJson()
     "    ]"                                                                                       + "\n" +
     "}"                                                                                           + "\n" ;
 
-    let content = (utils.CheckOs() === utils.OsTypes.MACOS) ? 
+    let content = (CheckOs() === OsTypes.MACOS) ? 
         (contentStart + contentEnd) : (contentStart + contentMid + contentEnd);
 
     return content;
@@ -407,7 +407,7 @@ function SettingsJson()
 function TasksJson()
 {
     const programPath = ('./build/${workspaceFolderBasename}' +  
-        ((utils.CheckOs() === utils.OsTypes.WINDOWS) ? '.exe' : ''));
+        ((CheckOs() === OsTypes.WINDOWS) ? '.exe' : ''));
 
     const content =
 

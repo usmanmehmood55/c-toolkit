@@ -79,7 +79,7 @@ function SanitizeFileName(name)
 {
     // Get all unique invalid characters
     const invalidChars = Array.from(new Set(name.match(/[^a-zA-Z0-9_ ]/g) || []));
-    
+
     if (invalidChars.length > 0)
     {
         vscode.window.showWarningMessage(`Invalid characters found: ${FormatList(invalidChars)}`);

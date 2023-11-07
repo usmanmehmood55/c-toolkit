@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs     = require('fs');
 const path   = require('path');
-const utils  = require('./Utils');
+const { OsTypes, CheckOs, WrapSpacedComponents } = require('./CommonUtils');
 
 const BUILD_DIR_NAME      = 'build';
 const CMAKE_LISTS_NAME    = 'CMakeLists.txt';
@@ -9,7 +9,7 @@ const BUILD_MARKER_NAME   = 'z_build_complete';
 const BUILD_DIR_PATH      = path.join(vscode.workspace.rootPath, BUILD_DIR_NAME);
 const CMAKE_LISTS_PATH    = path.join(vscode.workspace.rootPath, CMAKE_LISTS_NAME);
 const BUILD_MARKER_PATH   = path.join(BUILD_DIR_PATH, BUILD_MARKER_NAME);
-const EXECUTABLE_NAME     = `${vscode.workspace.name}${(utils.CheckOs() === utils.OsTypes.WINDOWS) ? '.exe' : ''}`;
+const EXECUTABLE_NAME     = `${vscode.workspace.name}${(CheckOs() === OsTypes.WINDOWS) ? '.exe' : ''}`;
 const EXECUTABLE_PATH     = path.join(BUILD_DIR_PATH, EXECUTABLE_NAME);
 const BUILD_TERMINAL_NAME = "CMake Build";
 const RUN_TERMINAL_NAME   = "CMake Run";
@@ -180,8 +180,8 @@ async function invokeBuild(buildState)
      */
     const buildCommand    = `cmake -G Ninja -B ${BUILD_DIR_NAME} -D CMAKE_BUILD_TYPE=${buildState.type}`;
     const ninjaCommand    = 'ninja -C build';
-    const buildMarker     = `touch ${utils.WrapSpacedComponents(BUILD_MARKER_PATH)}`;
-    const terminalSepChar = (utils.CheckOs() === utils.OsTypes.WINDOWS) ? ';' : '&&';
+    const buildMarker     = `touch ${WrapSpacedComponents(BUILD_MARKER_PATH)}`;
+    const terminalSepChar = (CheckOs() === OsTypes.WINDOWS) ? ';' : '&&';
 
     const execString = `${buildCommand} ${terminalSepChar} ${ninjaCommand} ${terminalSepChar} ${buildMarker}`;
 
@@ -225,14 +225,14 @@ async function invokeRun(buildState, shouldClean)
 {
     if (shouldClean)
     {
-        await  cleanBuild(true);
+        await cleanBuild(true);
     }
 
     await invokeBuild(buildState);
 
     if (fs.existsSync(EXECUTABLE_PATH))
     {
-        const execString  = utils.WrapSpacedComponents(EXECUTABLE_PATH);
+        const execString  = WrapSpacedComponents(EXECUTABLE_PATH);
 
         // Try to find an existing terminal named "Tests Terminal"
         let terminal = vscode.window.terminals.find(t => t.name === RUN_TERMINAL_NAME);
