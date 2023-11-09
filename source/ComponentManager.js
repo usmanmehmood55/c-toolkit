@@ -2,7 +2,7 @@ const fs           = require('fs');
 const path         = require('path');
 const vscode       = require('vscode');
 const fileContents = require('./FileContents');
-const { SanitizeFileName } = require('./CommonUtils');
+const { SanitizeFileName, GetWorkspacePath } = require('./CommonUtils');
 
 let createComponentDisposable;
 
@@ -135,7 +135,7 @@ function ComposeComponentFiles(component, componentDirPath)
  */
 async function PrepareComponentDirectory(component)
 {
-    let componentDirPath = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'Components', component.name);
+    let componentDirPath = path.join(GetWorkspacePath(), 'Components', component.name);
 
     if (fs.existsSync(componentDirPath))
     {
@@ -158,7 +158,7 @@ async function PrepareComponentDirectory(component)
 async function RegisterComponentToMainCmake(component)
 {
     // redundant because this check was moved to createNewComponent()
-    let rootCmakeFilePath = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'CMakeLists.txt');
+    let rootCmakeFilePath = path.join(GetWorkspacePath(), 'CMakeLists.txt');
     if (fs.existsSync(rootCmakeFilePath) === false)
     {
         vscode.window.showWarningMessage(`Root CMakeLists.txt not found.`);
@@ -204,7 +204,14 @@ async function RegisterComponentToMainCmake(component)
  */
 async function createNewComponent()
 {
-    let rootCmakeFilePath = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, 'CMakeLists.txt');
+    let workspacePath = GetWorkspacePath();
+    if (!workspacePath)
+    {
+        vscode.window.showErrorMessage("No folder open in the workspace");
+        return undefined;
+    }
+
+    let rootCmakeFilePath = path.join(workspacePath, 'CMakeLists.txt');
     if (fs.existsSync(rootCmakeFilePath) === false)
     {
         vscode.window.showWarningMessage(`Root CMakeLists.txt not found.`);
