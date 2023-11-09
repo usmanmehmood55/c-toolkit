@@ -2,7 +2,7 @@ const fs               = require('fs');
 const path             = require('path');
 const vscode           = require('vscode');
 const fileContents     = require('./FileContents');
-const utils            = require('./Utils');
+const { SanitizeFileName } = require('./CommonUtils');
 
 let createProjectDisposable;
 
@@ -98,7 +98,7 @@ async function PrepareProjectDirectory(project)
         return;
     }
 
-    projectName = utils.SanitizeFileName(projectName);
+    projectName = SanitizeFileName(projectName);
 
     const projectDirPath = path.join(baseFolderPath, projectName);
 

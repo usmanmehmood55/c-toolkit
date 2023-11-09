@@ -79,7 +79,7 @@ function SanitizeFileName(name)
 {
     // Get all unique invalid characters
     const invalidChars = Array.from(new Set(name.match(/[^a-zA-Z0-9_ ]/g) || []));
-    
+
     if (invalidChars.length > 0)
     {
         vscode.window.showWarningMessage(`Invalid characters found: ${FormatList(invalidChars)}`);
@@ -115,6 +115,26 @@ function FindProgramPath(program)
     }
 }
 
+/**
+ * Retrieves the file system path of the first workspace folder opened in VSCode.
+ * This function is to be used when the extension requires access to the current workspace
+ * directory. It checks if there are any workspace folders currently opened and returns
+ * the path of the first one if available.
+ *
+ * @returns {string|undefined}
+ * The file system path of the first workspace folder if any, otherwise `undefined` if
+ * no workspace folders are open.
+ */
+function GetWorkspacePath()
+{
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0)
+    {
+        return vscode.workspace.workspaceFolders[0].uri.fsPath;
+    }
+
+    return undefined;
+}
+
 module.exports =
 {
     FormatList,
@@ -123,4 +143,5 @@ module.exports =
     CheckOs,
     WrapSpacedComponents,
     FindProgramPath,
+    GetWorkspacePath
 };

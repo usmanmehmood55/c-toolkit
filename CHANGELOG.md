@@ -1,6 +1,18 @@
 # Change Log
 
-## [v0.2.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.1)
+## [v0.2.3](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.3)
+
+### Improvements
+
+- Added a [contributing guideline](./CHANGELOG.md)
+
+### Fixes
+
+- ~~Extension doesn't activate when a folder isn't open in the workspace.~~
+  The extension now activates and works appropriately when no folder is
+  open in the workspace.
+
+## [v0.2.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.2)
 
 ### Improvements
 
