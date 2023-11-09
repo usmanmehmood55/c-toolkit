@@ -418,7 +418,7 @@ function TasksJson()
     "        {"                                                              + "\n" +
     "            \"label\"  : \"cmake_generate\","                           + "\n" +
     "            \"type\"   : \"shell\","                                    + "\n" +
-    "            \"command\": \"cmake -GNinja -Bbuild\""                     + "\n" +
+    "            \"command\": \"cmake -G Ninja -B build\""                   + "\n" +
     "        },"                                                             + "\n" +
     "        {"                                                              + "\n" +
     "            \"label\"  : \"ninja_build\","                              + "\n" +
