@@ -1,8 +1,9 @@
-const fs               = require('fs');
-const path             = require('path');
-const vscode           = require('vscode');
-const fileContents     = require('./FileContents');
+const fs                   = require('fs');
+const path                 = require('path');
+const vscode               = require('vscode');
+const fileContents         = require('./FileContents');
 const { SanitizeFileName } = require('./CommonUtils');
+const Logger               = require('./Logger');
 
 let createProjectDisposable;
 
@@ -79,7 +80,8 @@ async function PrepareProjectDirectory(project)
 
     if (!selectedFolderUri || selectedFolderUri.length === 0)
     {
-        vscode.window.showErrorMessage("No folder selected.");
+        Logger.Warning('No folder selected.');
+        vscode.window.showErrorMessage('No folder selected.');
         return;
     }
 
@@ -94,7 +96,8 @@ async function PrepareProjectDirectory(project)
 
     if (!projectName)
     {
-        vscode.window.showErrorMessage("Project name is required.");
+        Logger.Warning('Project name is required.');
+        vscode.window.showWarningMessage('Project name is required.');
         return;
     }
 
@@ -105,6 +108,7 @@ async function PrepareProjectDirectory(project)
     // If a folder with that name already exists then show an error
     if (fs.existsSync(projectDirPath))
     {
+        Logger.Error(`Project "${projectName}" already exists.`);
         vscode.window.showErrorMessage(`Project "${projectName}" already exists.`);
         return undefined;
     }
@@ -133,6 +137,8 @@ async function createNewProject()
     // Open the new project directory in VSCode
     const uri = vscode.Uri.file(projectDirPath);
     await vscode.commands.executeCommand('vscode.openFolder', uri);
+
+    Logger.Info(`New project created in ${projectDirPath}`);
 }
 
 module.exports = CreateProjectCommand;

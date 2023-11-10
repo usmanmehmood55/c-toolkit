@@ -2,6 +2,7 @@ const fs           = require('fs');
 const path         = require('path');
 const vscode       = require('vscode');
 const fileContents = require('./FileContents');
+const Logger       = require('./Logger');
 const { SanitizeFileName, GetWorkspacePath } = require('./CommonUtils');
 
 let createComponentDisposable;
@@ -41,6 +42,8 @@ class Component
  */
 async function SelectComponentProperties(component)
 {
+    Logger.Info('Attempting to create a component');
+
     let componentName = await vscode.window.showInputBox({ prompt: 'Enter the name of the new component' });
     if (componentName !== undefined)
     {
@@ -48,6 +51,8 @@ async function SelectComponentProperties(component)
     }
     else
     {
+        Logger.Warning('Component name is required.');
+        vscode.window.showWarningMessage('Component name is required.');
         return undefined;
     }
 
@@ -73,7 +78,11 @@ async function SelectComponentProperties(component)
     });
 
     // if no selection, do not do anything
-    if (!selectedProperties) return undefined;
+    if (!selectedProperties)
+    {
+        Logger.Error('No component properties were selected.');
+        return undefined;
+    }
 
     // Reset properties to false
     properties.forEach(prop => 
@@ -139,6 +148,7 @@ async function PrepareComponentDirectory(component)
 
     if (fs.existsSync(componentDirPath))
     {
+        Logger.Error(`Component "${component.name}" already exists.`);
         vscode.window.showWarningMessage(`Component "${component.name}" already exists.`);
         return undefined;
     }
@@ -161,7 +171,8 @@ async function RegisterComponentToMainCmake(component)
     let rootCmakeFilePath = path.join(GetWorkspacePath(), 'CMakeLists.txt');
     if (fs.existsSync(rootCmakeFilePath) === false)
     {
-        vscode.window.showWarningMessage(`Root CMakeLists.txt not found.`);
+        Logger.Error(`Root CMakeLists.txt not found.`);
+        vscode.window.showErrorMessage(`Root CMakeLists.txt not found.`);
         return undefined;
     }
 
@@ -230,6 +241,8 @@ async function createNewComponent()
     files.forEach(file => fs.writeFileSync(file.path, file.content));
     
     await RegisterComponentToMainCmake(component);
+
+    Logger.Info(`Component ${component.name} created.`);
 }
 
 module.exports = CreateComponentCommand;

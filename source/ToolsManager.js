@@ -47,6 +47,7 @@ async function isToolInPath(toolName)
     try
     {
         execSync(versionCommand, { stdio: 'ignore' });
+        Logger.Info(`${toolName} found.`);
         return true;
     }
     catch (error)
@@ -63,6 +64,8 @@ async function isToolInPath(toolName)
  */
 const installScoop = () => 
 {
+    Logger.Info('Attempting to install Scoop');
+
     const installCommand = 'powershell';
     const installArgs = ['-Command', '& {Set-ExecutionPolicy RemoteSigned -scope CurrentUser; iwr -useb get.scoop.sh | iex}'];
 
@@ -128,6 +131,7 @@ async function askAndInstallScoop()
         }
         else if (selection === 'No')
         {
+            Logger.Warning('Scoop was not found and the user did not consent to installation');
             vscode.window.showWarningMessage('Build tools for Windows would have to be installed manually.');
         }
     });
@@ -150,7 +154,7 @@ function execCommand(userPassword, command, args)
         args = ['/c', `${WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop`, ...args];
     }
 
-    Logger.Info(`execCommand - Executing: ${command} ${args.join(' ')}`);
+    Logger.Info(`Executing: ${command} ${args.join(' ')}`);
 
     const process = spawnSync(command, args, { input: Buffer.from(`${userPassword}\n`, "utf-8"), });
 
@@ -161,12 +165,12 @@ function execCommand(userPassword, command, args)
     // Log the outputs
     if (stdout)
     {
-        Logger.Info(`execCommand - stdout: ${stdout}`);
+        Logger.Info(`stdout: ${stdout}`);
     }
 
     if (stderr)
     {
-        Logger.Error(`execCommand - stderr: ${stderr}`);
+        Logger.Error(`stderr: ${stderr}`);
     }
 
     if (process.status !== 0)
@@ -193,6 +197,8 @@ function installTool(toolName, userPassword)
         cancellable: false
     }, async (progress, token) => // eslint-disable-line no-unused-vars
     {
+        Logger.Info(`Attempting to install ${toolName}`);
+
         let isInstalled = false;
         progress.report({ message: `In Progress...` });
 
@@ -378,6 +384,7 @@ async function askAndInstallMultipleTools(tools)
         }
         else if (selection === 'No')
         {
+            Logger.Warning(`${toolList} not found and the user did not consent to installation`);
             vscode.window.showWarningMessage(`${toolList} would have to be installed manually.`);
         }
     });
