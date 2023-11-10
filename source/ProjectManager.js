@@ -8,7 +8,9 @@ const Logger               = require('./Logger');
 let createProjectDisposable;
 
 /**
- * @param {*} context 
+ * Registers the 'createProject' command in the extension.
+ * 
+ * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
  */
 function CreateProjectCommand(context)
 {
@@ -23,7 +25,9 @@ function CreateProjectCommand(context)
 class Project
 {
     /**
-     * @param {string?} name
+     * Creates a new Project instance.
+     * 
+     * @param {string?} name The name of the project.
      */
     constructor(name)
     {
@@ -36,12 +40,12 @@ class Project
 }
 
 /**
+ * Composes a list of files to be created for a project.
  * 
+ * @param {Project} project        The project to compose files for.
+ * @param {string}  projectDirPath The directory path where the project files will be located.
  * 
- * @param {Project} project 
- * @param {string}  projectDirPath 
- * 
- * @returns 
+ * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
  */
 function ComposeProjectFiles(project, projectDirPath) 
 {
@@ -62,11 +66,13 @@ function ComposeProjectFiles(project, projectDirPath)
 }
 
 /**
- * Creates a directory for the project inside the "projects" directory
+ * Prepares a directory for the project inside the selected base folder.
  * 
- * @param {Project} project 
+ * @param {Project} project The project for which to prepare the directory.
  * 
- * @returns undefined if the project folder already exists
+ * @returns {Promise<string|undefined>}
+ * The path to the project directory, or undefined if the folder already
+ * exists or no folder was selected.
  */
 async function PrepareProjectDirectory(project)
 {
@@ -120,9 +126,11 @@ async function PrepareProjectDirectory(project)
 }
 
 /**
- * Creates a new project by asking the user about project name and properties
+ * Handles the creation of a new project.
  * 
- * @returns undefined if project creation was cancelled or it already existed
+ * @returns {Promise<void|undefined>}
+ * A promise that resolves when the project is created, or undefined if the
+ * creation was cancelled or the project already existed.
  */
 async function createNewProject()
 {

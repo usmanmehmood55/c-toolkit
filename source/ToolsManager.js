@@ -75,12 +75,12 @@ const installScoop = () =>
 
         process.stdout.on('data', (data) => 
         {
-            Logger.Info(`installScoop - stdout: ${data}`);
+            Logger.Info(`stdout: ${data}`);
         });
 
         process.stderr.on('data', (data) => 
         {
-            Logger.Error(`installScoop - stderr: ${data}`);
+            Logger.Error(`stderr: ${data}`);
         });
 
         process.on('close', (code) => 

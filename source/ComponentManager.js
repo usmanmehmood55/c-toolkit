@@ -8,7 +8,9 @@ const { SanitizeFileName, GetWorkspacePath } = require('./CommonUtils');
 let createComponentDisposable;
 
 /**
- * @param {*} context 
+ * Registers the 'createComponent' command in the extension.
+ * 
+ * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
  */
 function CreateComponentCommand(context)
 {
@@ -23,9 +25,11 @@ function CreateComponentCommand(context)
 class Component
 {
     /**
-     * @param {string?} name
-     * @param {boolean} mocked
-     * @param {boolean} tested
+     * Creates a new Component instance.
+     * 
+     * @param {string?} name   The name of the component.
+     * @param {boolean} mocked Indicates whether the component is mocked.
+     * @param {boolean} tested Indicates whether the component is tested.
      */
     constructor(name, mocked, tested) 
     {
@@ -36,9 +40,11 @@ class Component
 }
 
 /**
+ * Prompts the user to select properties for a component.
  * 
- * @param {Component} component 
- * @returns 
+ * @param {Component} component The component for which to select properties.
+ * 
+ * @returns {Promise<Component|undefined>} The updated component, or undefined if the selection was cancelled.
  */
 async function SelectComponentProperties(component)
 {
@@ -100,12 +106,12 @@ async function SelectComponentProperties(component)
 }
 
 /**
+ * Composes a list of files to be created for a component.
  * 
+ * @param {Component} component        The component to compose files for.
+ * @param {string}    componentDirPath The directory path where the component files will be located.
  * 
- * @param {Component} component 
- * @param {string}    componentDirPath 
- * 
- * @returns 
+ * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
  */
 function ComposeComponentFiles(component, componentDirPath) 
 {
@@ -136,11 +142,12 @@ function ComposeComponentFiles(component, componentDirPath)
 }
 
 /**
- * Creates a directory for the component inside the "components" directory
+ * Prepares a directory for the component inside the "components" directory.
  * 
- * @param {Component} component 
+ * @param {Component} component The component for which to prepare the directory.
  * 
- * @returns undefined if the component folder already exists
+ * @returns {Promise<string|undefined>}
+ * The path to the component directory, or undefined if the folder already exists.
  */
 async function PrepareComponentDirectory(component)
 {
@@ -159,11 +166,12 @@ async function PrepareComponentDirectory(component)
 }
 
 /**
- * Adds the newly created component to the main CMakeLists.txt
+ * Adds the newly created component to the main CMakeLists.txt.
  * 
- * @param {Component} component 
+ * @param {Component} component The component to register in the CMakeLists.txt.
  * 
- * @returns undefined if CMakeLists.txt does not exist.
+ * @returns {Promise<void|undefined>}
+ * A promise that resolves when the operation is complete, or undefined if CMakeLists.txt does not exist.
  */
 async function RegisterComponentToMainCmake(component)
 {
@@ -209,9 +217,11 @@ async function RegisterComponentToMainCmake(component)
 }
 
 /**
- * Creates a new component by asking the user about component name and properties
+ * Handles the creation of a new component.
  * 
- * @returns undefined if component creation was cancelled or it already existed
+ * @returns {Promise<void|undefined>}
+ * A promise that resolves when the component is created, or undefined if the creation
+ * was cancelled or the component already existed.
  */
 async function createNewComponent()
 {

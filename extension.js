@@ -12,7 +12,7 @@ const BuildSubsystems = buttonActions.BuildSubsystems;
 let buildState = new BuildState(BuildTypes.DEBUG,  BuildSubsystems.NINJA);
 
 /**
- * @param {*} context 
+ * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
  */
 function activate(context) 
 {
@@ -65,7 +65,7 @@ class StatusBarButton
 
 /**
  * @param {StatusBarButton} button
- * @param {*} context
+ * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
  * @returns {vscode.StatusBarItem}
  */
 function createStatusBarItem(button, context)
