@@ -2,7 +2,8 @@ const vscode                 = require('vscode');
 const CreateComponentCommand = require('./source/ComponentManager');
 const buttonActions          = require('./source/ButtonActions');
 const CreateProjectCommand   = require('./source/ProjectManager');
-const ToolsManager           = require('./source/ToolsManager');
+const SearchForTools         = require('./source/ToolsManager');
+const Logger                 = require('./source/Logger');
 
 const BuildState      = buttonActions.BuildState;
 const BuildTypes      = buttonActions.BuildTypes;
@@ -30,7 +31,7 @@ function activate(context)
 
     CreateComponentCommand(context);
     CreateProjectCommand(context);
-    ToolsManager.searchForTools();
+    SearchForTools();
 
     vscode.window.onDidChangeActiveColorTheme(e => // eslint-disable-line no-unused-vars
     {
@@ -104,7 +105,7 @@ function createStatusBarItem(button, context)
 
 function deactivate()
 {
-    console.log("C Toolkit extension deactivated");
+    Logger.Info("C Toolkit extension deactivated");
 }
 
 module.exports = 

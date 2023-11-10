@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const os     = require('os');
+const Logger = require('./Logger');
 const { execSync } = require('child_process');
 const { spawn, spawnSync } = require('child_process');
 const { OsTypes, CheckOs, FormatList, WrapSpacedComponents } = require('./CommonUtils');
@@ -71,12 +72,12 @@ const installScoop = () =>
 
         process.stdout.on('data', (data) => 
         {
-            console.log(`installScoop - stdout: ${data}`);
+            Logger.Info(`installScoop - stdout: ${data}`);
         });
 
         process.stderr.on('data', (data) => 
         {
-            console.error(`installScoop - stderr: ${data}`);
+            Logger.Error(`installScoop - stderr: ${data}`);
         });
 
         process.on('close', (code) => 
@@ -149,7 +150,7 @@ function execCommand(userPassword, command, args)
         args = ['/c', `${WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop`, ...args];
     }
 
-    console.log(`execCommand - Executing: ${command} ${args.join(' ')}`);
+    Logger.Info(`execCommand - Executing: ${command} ${args.join(' ')}`);
 
     const process = spawnSync(command, args, { input: Buffer.from(`${userPassword}\n`, "utf-8"), });
 
@@ -160,12 +161,12 @@ function execCommand(userPassword, command, args)
     // Log the outputs
     if (stdout)
     {
-        console.log(`execCommand - stdout: ${stdout}`);
+        Logger.Info(`execCommand - stdout: ${stdout}`);
     }
 
     if (stderr)
     {
-        console.error(`execCommand - stderr: ${stderr}`);
+        Logger.Error(`execCommand - stderr: ${stderr}`);
     }
 
     if (process.status !== 0)
@@ -383,10 +384,11 @@ async function askAndInstallMultipleTools(tools)
 }
 
 /**
+ * Searches for build tools and on Windows also for the package manager 'Scoop'.
  * Prompts the user for installing Scoop. If the user agrees, initiates the installation.
  * After installation, it either displays a success message or an error message based on the outcome.
  */
-async function searchForTools()
+async function SearchForTools()
 {
     /** @type {string[]} */
     let missingTools = [];
@@ -421,7 +423,4 @@ async function searchForTools()
     }
 }
 
-module.exports = 
-{
-    searchForTools,
-};
+module.exports = SearchForTools;
