@@ -370,24 +370,23 @@ async function askForPassword()
 async function askAndInstallMultipleTools(tools)
 {
     const toolList = FormatList(tools);
-    vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No').then(async selection =>
+
+    const selection = await vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No');
+    if (selection === 'Yes')
     {
-        if (selection === 'Yes')
+        /** @type {string} */
+        let userPassword = undefined;
+        if (CheckOs() === OsTypes.LINUX)
         {
-            /** @type {string} */
-            let userPassword = undefined;
-            if (CheckOs() === OsTypes.LINUX)
-            {
-                userPassword = await askForPassword();
-            }
-            InstallMultipleTools(tools, userPassword);
+            userPassword = await askForPassword();
         }
-        else if (selection === 'No')
-        {
-            Logger.Warning(`${toolList} not found and the user did not consent to installation`);
-            vscode.window.showWarningMessage(`${toolList} would have to be installed manually.`);
-        }
-    });
+        await InstallMultipleTools(tools, userPassword);
+    }
+    else
+    {
+        Logger.Warning(`${toolList} not found and the user did not consent to installation`);
+        vscode.window.showWarningMessage(`${toolList} would have to be installed manually.`);
+    }
 }
 
 /**
@@ -426,7 +425,7 @@ async function SearchForTools()
 
     if (missingTools.length > 0)
     {
-        askAndInstallMultipleTools(missingTools);
+        await askAndInstallMultipleTools(missingTools);
     }
 }
 
