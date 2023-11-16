@@ -18,13 +18,13 @@ function activate(context)
 {
     const buttons = 
     [
-        new StatusBarButton("Build Type", `$(gear) ${buildState.type}`, "extension.selectBuild", "Click to switch build type",  7),
-        new StatusBarButton("Clean",      "$(trash) Clean",             "extension.clean",       "Clean the build",             6),
-        new StatusBarButton("Build",      "$(database) Build",          "extension.build",       "Build the project",           5),
-        new StatusBarButton("Run"  ,      "$(run) Run",                 "extension.run",         "Run the application",         4),
-        new StatusBarButton("Debug",      "$(debug) Debug",             "extension.debug",       "Debug the processor",         3),
-        new StatusBarButton("Test",       "$(beaker) Test",             "extension.test",        "Run tests",                   2),
-        new StatusBarButton("Debug Test", "$(debug-alt) Debug Test",    "extension.debugTest",   "Click to debug the test app", 1)
+        new StatusBarButton("Build Type", `$(gear) ${buildState.type}`, "extension.selectBuild", "Click to switch build type",  16),
+        new StatusBarButton("Clean",      "$(trash) Clean",             "extension.clean",       "Clean the build",             15),
+        new StatusBarButton("Build",      "$(database) Build",          "extension.build",       "Build the project",           14),
+        new StatusBarButton("Run"  ,      "$(run) Run",                 "extension.run",         "Run the application",         13),
+        new StatusBarButton("Debug",      "$(debug) Debug",             "extension.debug",       "Debug the processor",         12),
+        new StatusBarButton("Test",       "$(beaker) Test",             "extension.test",        "Run tests",                   11),
+        new StatusBarButton("Debug Test", "$(debug-alt) Debug Test",    "extension.debugTest",   "Click to debug the test app", 10)
     ];
 
     const disposables = buttons.map(button => createStatusBarItem(button, context));
