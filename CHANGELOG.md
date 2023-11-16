@@ -1,10 +1,22 @@
 # Change Log
 
+## [v0.2.4](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.4)
+
+### Features
+
+- Added a command to refresh project configuration in `.vscode` folder.
+
+### Improvements
+
+- Added a command to manually trigger build tools search.
+- Improved logging: Logs now appear on the output window.
+- Improved statusbar button layout.
+
 ## [v0.2.3](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.3)
 
 ### Improvements
 
-- Added a [contributing guideline](./CHANGELOG.md)
+- Added a [contributing guideline](./CONTRIBUTING.md)
 
 ### Fixes
 

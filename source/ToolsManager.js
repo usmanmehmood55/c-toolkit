@@ -1,8 +1,27 @@
 const vscode = require('vscode');
 const os     = require('os');
+const Logger = require('./Logger');
 const { execSync } = require('child_process');
 const { spawn, spawnSync } = require('child_process');
 const { OsTypes, CheckOs, FormatList, WrapSpacedComponents } = require('./CommonUtils');
+
+/** @type {vscode.Disposable} */
+let searchForToolsDisposable;
+
+/**
+ * Registers the 'searchForTools' command in the extension.
+ * 
+ * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
+ */
+function SearchForToolsCommand(context)
+{
+    if (searchForToolsDisposable)
+    {
+        searchForToolsDisposable.dispose();
+    }
+    searchForToolsDisposable = vscode.commands.registerCommand("extension.searchForTools", SearchForTools);
+    context.subscriptions.push(searchForToolsDisposable);
+}
 
 /**
  * Enum for build tools required
@@ -46,6 +65,7 @@ async function isToolInPath(toolName)
     try
     {
         execSync(versionCommand, { stdio: 'ignore' });
+        Logger.Info(`${toolName} found.`);
         return true;
     }
     catch (error)
@@ -62,6 +82,8 @@ async function isToolInPath(toolName)
  */
 const installScoop = () => 
 {
+    Logger.Info('Attempting to install Scoop');
+
     const installCommand = 'powershell';
     const installArgs = ['-Command', '& {Set-ExecutionPolicy RemoteSigned -scope CurrentUser; iwr -useb get.scoop.sh | iex}'];
 
@@ -71,12 +93,12 @@ const installScoop = () =>
 
         process.stdout.on('data', (data) => 
         {
-            console.log(`installScoop - stdout: ${data}`);
+            Logger.Info(`stdout: ${data}`);
         });
 
         process.stderr.on('data', (data) => 
         {
-            console.error(`installScoop - stderr: ${data}`);
+            Logger.Error(`stderr: ${data}`);
         });
 
         process.on('close', (code) => 
@@ -127,6 +149,7 @@ async function askAndInstallScoop()
         }
         else if (selection === 'No')
         {
+            Logger.Warning('Scoop was not found and the user did not consent to installation');
             vscode.window.showWarningMessage('Build tools for Windows would have to be installed manually.');
         }
     });
@@ -149,7 +172,7 @@ function execCommand(userPassword, command, args)
         args = ['/c', `${WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop`, ...args];
     }
 
-    console.log(`execCommand - Executing: ${command} ${args.join(' ')}`);
+    Logger.Info(`Executing: ${command} ${args.join(' ')}`);
 
     const process = spawnSync(command, args, { input: Buffer.from(`${userPassword}\n`, "utf-8"), });
 
@@ -160,12 +183,12 @@ function execCommand(userPassword, command, args)
     // Log the outputs
     if (stdout)
     {
-        console.log(`execCommand - stdout: ${stdout}`);
+        Logger.Info(`stdout: ${stdout}`);
     }
 
     if (stderr)
     {
-        console.error(`execCommand - stderr: ${stderr}`);
+        Logger.Error(`stderr: ${stderr}`);
     }
 
     if (process.status !== 0)
@@ -192,6 +215,8 @@ function installTool(toolName, userPassword)
         cancellable: false
     }, async (progress, token) => // eslint-disable-line no-unused-vars
     {
+        Logger.Info(`Attempting to install ${toolName}`);
+
         let isInstalled = false;
         progress.report({ message: `In Progress...` });
 
@@ -363,30 +388,31 @@ async function askForPassword()
 async function askAndInstallMultipleTools(tools)
 {
     const toolList = FormatList(tools);
-    vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No').then(async selection =>
+
+    const selection = await vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No');
+    if (selection === 'Yes')
     {
-        if (selection === 'Yes')
+        /** @type {string} */
+        let userPassword = undefined;
+        if (CheckOs() === OsTypes.LINUX)
         {
-            /** @type {string} */
-            let userPassword = undefined;
-            if (CheckOs() === OsTypes.LINUX)
-            {
-                userPassword = await askForPassword();
-            }
-            InstallMultipleTools(tools, userPassword);
+            userPassword = await askForPassword();
         }
-        else if (selection === 'No')
-        {
-            vscode.window.showWarningMessage(`${toolList} would have to be installed manually.`);
-        }
-    });
+        await InstallMultipleTools(tools, userPassword);
+    }
+    else
+    {
+        Logger.Warning(`${toolList} not found and the user did not consent to installation`);
+        vscode.window.showWarningMessage(`${toolList} would have to be installed manually.`);
+    }
 }
 
 /**
+ * Searches for build tools and on Windows also for the package manager 'Scoop'.
  * Prompts the user for installing Scoop. If the user agrees, initiates the installation.
  * After installation, it either displays a success message or an error message based on the outcome.
  */
-async function searchForTools()
+async function SearchForTools()
 {
     /** @type {string[]} */
     let missingTools = [];
@@ -417,11 +443,12 @@ async function searchForTools()
 
     if (missingTools.length > 0)
     {
-        askAndInstallMultipleTools(missingTools);
+        await askAndInstallMultipleTools(missingTools);
     }
 }
 
 module.exports = 
 {
-    searchForTools,
+    SearchForToolsCommand,
+    SearchForTools
 };
