@@ -5,6 +5,24 @@ const { execSync } = require('child_process');
 const { spawn, spawnSync } = require('child_process');
 const { OsTypes, CheckOs, FormatList, WrapSpacedComponents } = require('./CommonUtils');
 
+/** @type {vscode.Disposable} */
+let searchForToolsDisposable;
+
+/**
+ * Registers the 'searchForTools' command in the extension.
+ * 
+ * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
+ */
+function SearchForToolsCommand(context)
+{
+    if (searchForToolsDisposable)
+    {
+        searchForToolsDisposable.dispose();
+    }
+    searchForToolsDisposable = vscode.commands.registerCommand("extension.searchForTools", SearchForTools);
+    context.subscriptions.push(searchForToolsDisposable);
+}
+
 /**
  * Enum for build tools required
  */
@@ -429,4 +447,8 @@ async function SearchForTools()
     }
 }
 
-module.exports = SearchForTools;
+module.exports = 
+{
+    SearchForToolsCommand,
+    SearchForTools
+};

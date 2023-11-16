@@ -57,7 +57,7 @@ async function SelectComponentProperties(component)
     }
     else
     {
-        Logger.Warning('Component name is required.');
+        Logger.Warning('Unable to create a component: component name is required.');
         vscode.window.showWarningMessage('Component name is required.');
         return undefined;
     }
@@ -242,7 +242,7 @@ async function createNewComponent()
     let component = new Component(undefined, false, false);
 
     await SelectComponentProperties(component);
-    if (component === undefined) return undefined;
+    if (component.name === undefined) return undefined;
 
     let componentDirPath = await PrepareComponentDirectory(component);
     if (componentDirPath === undefined) return undefined;

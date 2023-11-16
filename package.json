@@ -29,6 +29,14 @@
             {
                 "command": "extension.createComponent",
                 "title": "C Toolkit: Create New Component"
+            },
+            {
+                "command": "extension.searchForTools",
+                "title": "C Toolkit: Search For Build Tools"
+            },
+            {
+                "command": "extension.refreshConfigs",
+                "title": "C Toolkit: Refresh Configurations"
             }
         ],
         "snippets": [

@@ -5,6 +5,7 @@ const fileContents         = require('./FileContents');
 const { SanitizeFileName } = require('./CommonUtils');
 const Logger               = require('./Logger');
 
+/** @type {vscode.Disposable} */
 let createProjectDisposable;
 
 /**
@@ -42,24 +43,39 @@ class Project
 /**
  * Composes a list of files to be created for a project.
  * 
- * @param {Project} project        The project to compose files for.
  * @param {string}  projectDirPath The directory path where the project files will be located.
  * 
  * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
  */
-function ComposeProjectFiles(project, projectDirPath) 
+function ComposeVscodeFiles(projectDirPath) 
 {
     fs.mkdirSync(path.join(projectDirPath, ".vscode"), { recursive: true });
 
     let files = 
     [
-        { path: path.join(projectDirPath, "main.c"),         content: fileContents.MainSource()   },
-        { path: path.join(projectDirPath, "CMakeLists.txt"), content: fileContents.ProjectCmake() },
-
         { path: path.join(projectDirPath, ".vscode", "c_cpp_properties.json"), content: fileContents.CppPropertiesJson() },
         { path: path.join(projectDirPath, ".vscode", "launch.json"),           content: fileContents.LaunchJson()        },
         { path: path.join(projectDirPath, ".vscode", "settings.json"),         content: fileContents.SettingsJson()      },
         { path: path.join(projectDirPath, ".vscode", "tasks.json"),            content: fileContents.TasksJson()         },
+    ];
+
+    return files;
+}
+
+/**
+ * Composes a list of files to be created for a project.
+ * 
+ * @param {Project} project        The project to compose files for.
+ * @param {string}  projectDirPath The directory path where the project files will be located.
+ * 
+ * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
+ */
+function ComposeSourceFiles(project, projectDirPath) 
+{
+    let files = 
+    [
+        { path: path.join(projectDirPath, "main.c"),         content: fileContents.MainSource()   },
+        { path: path.join(projectDirPath, "CMakeLists.txt"), content: fileContents.ProjectCmake() },
     ];
 
     return files;
@@ -102,7 +118,7 @@ async function PrepareProjectDirectory(project)
 
     if (!projectName)
     {
-        Logger.Warning('Project name is required.');
+        Logger.Warning('Unable to create a project: project name is required.');
         vscode.window.showWarningMessage('Project name is required.');
         return;
     }
@@ -139,7 +155,14 @@ async function createNewProject()
     let projectDirPath = await PrepareProjectDirectory(project);
     if (projectDirPath === undefined) return undefined;
 
-    let files = ComposeProjectFiles(project, projectDirPath);
+    /** @type {Array<{ path: string, content: string }>} */
+    let files = [];
+    let sourceFiles = ComposeSourceFiles(project, projectDirPath);
+    let vscodeFiles = ComposeVscodeFiles(projectDirPath);
+
+    files = [...files, ...sourceFiles];
+    files = [...files, ...vscodeFiles];
+
     files.forEach(file => fs.writeFileSync(file.path, file.content));
 
     // Open the new project directory in VSCode
@@ -149,4 +172,8 @@ async function createNewProject()
     Logger.Info(`New project created in ${projectDirPath}`);
 }
 
-module.exports = CreateProjectCommand;
+module.exports = 
+{
+    CreateProjectCommand,
+    ComposeVscodeFiles
+};

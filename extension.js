@@ -1,9 +1,10 @@
 const vscode                 = require('vscode');
 const CreateComponentCommand = require('./source/ComponentManager');
 const buttonActions          = require('./source/ButtonActions');
-const CreateProjectCommand   = require('./source/ProjectManager');
-const SearchForTools         = require('./source/ToolsManager');
+const ProjectManager         = require('./source/ProjectManager');
+const ToolsManager           = require('./source/ToolsManager');
 const Logger                 = require('./source/Logger');
+const RefreshConfigsCommand  = require('./source/ConfigManager');
 
 const BuildState      = buttonActions.BuildState;
 const BuildTypes      = buttonActions.BuildTypes;
@@ -30,8 +31,10 @@ function activate(context)
     const disposables = buttons.map(button => createStatusBarItem(button, context));
 
     CreateComponentCommand(context);
-    CreateProjectCommand(context);
-    SearchForTools();
+    ProjectManager.CreateProjectCommand(context);
+    RefreshConfigsCommand(context);
+    ToolsManager.SearchForToolsCommand(context);
+    ToolsManager.SearchForTools();
 
     vscode.window.onDidChangeActiveColorTheme(e => // eslint-disable-line no-unused-vars
     {
