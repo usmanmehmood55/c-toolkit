@@ -1,6 +1,7 @@
 const os     = require('os');
 const vscode = require('vscode');
 const path   = require('path');
+const { execSync } = require('child_process');
 
 /**
  * Enum for OS types
@@ -78,7 +79,7 @@ function SanitizeFileName(name)
 {
     // Get all unique invalid characters
     const invalidChars = Array.from(new Set(name.match(/[^a-zA-Z0-9_ ]/g) || []));
-    
+
     if (invalidChars.length > 0)
     {
         vscode.window.showWarningMessage(`Invalid characters found: ${FormatList(invalidChars)}`);
@@ -94,11 +95,53 @@ function SanitizeFileName(name)
     return invalidRemoved;
 }
 
+/**
+ * Finds the path of the given program using the 'which' command.
+ * 
+ * @param {string} program The program to find.
+ * 
+ * @returns {string | undefined} The path to the program or undefined if not found.
+ */
+function FindProgramPath(program)
+{
+    try
+    {
+        const path = execSync(`which ${program}`, { encoding: 'utf-8' }).trim();
+        return path;
+    }
+    catch (error)
+    {
+        return undefined;
+    }
+}
+
+/**
+ * Retrieves the file system path of the first workspace folder opened in VSCode.
+ * This function is to be used when the extension requires access to the current workspace
+ * directory. It checks if there are any workspace folders currently opened and returns
+ * the path of the first one if available.
+ *
+ * @returns {string|undefined}
+ * The file system path of the first workspace folder if any, otherwise `undefined` if
+ * no workspace folders are open.
+ */
+function GetWorkspacePath()
+{
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0)
+    {
+        return vscode.workspace.workspaceFolders[0].uri.fsPath;
+    }
+
+    return undefined;
+}
+
 module.exports =
 {
     FormatList,
     SanitizeFileName,
     OsTypes,
     CheckOs,
-    WrapSpacedComponents
+    WrapSpacedComponents,
+    FindProgramPath,
+    GetWorkspacePath
 };

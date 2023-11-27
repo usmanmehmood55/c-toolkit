@@ -3,17 +3,18 @@
 A VSCode extension to help create, build, run, debug and test C projects
 using CMake.
 
+![banner](images/banner.jpg)
+
 ## Features
 
 - Status bar buttons.
-- Checks for and installs missing build tools
 - Command for creating a new project.
 - Command for generating a new component (library).
+- Checks for and installs missing build tools
 - Snippets
 
 ## Important Note
 
-Right now this is a beta / pre-release extension, with undoubtedly lots of bugs.
 If you find a bug or have a suggestion, please [open a new issue](https://github.com/usmanmehmood55/c-toolkit/issues)
 and help me make this extension better. :)
 
@@ -38,30 +39,6 @@ Seven status bar buttons have been implemented to:
 - Debug
 - Test
 - Debug Test
-
-## Missing Build Tools
-
-The extension checks if the required build tools are installed by trying to
-execute `tool --version`. If the tool is not installed or is not included in
-the `PATH`, the error is detected by the extension and it then offers to
-install the missing tools.
-
-![Asks the user for installation of tools](images/tools_ask_installation.PNG)
-
-Once installation of the missing tools is complete, it asks the user if VSCode
-can be restarted.
-
-![Tools are installed](images/tools_installed.PNG)
-
-The build tools are installed via these package managers:
-
-- Advance Package Tool (APT) for Linux.
-- Homebrew for MacOS.
-- Scoop for Windows.
-
-Since Windows does not come pre-installed with Scoop, the ability to install
-Scoop itself has also been added. Once the tools are installed, the user is
-informed, and asked to close and re-open VS Code.
 
 ## Project Generation
 
@@ -119,6 +96,39 @@ A component would have the following files
 - CMakeLists.txt
 
 It would also modify the root CMakeLists.txt to add the new component
+
+## Missing Build Tools
+
+The extension checks if the required build tools are installed by trying to
+find them in the `PATH`, if any of them is not detected by the extension it
+then offers to install the missing tools.
+
+![Asks the user for installation of tools](images/tools_ask_installation.PNG)
+
+Once installation of the missing tools is complete, it asks the user if VSCode
+can be restarted.
+
+![Tools are installed](images/tools_installed.PNG)
+
+The build tools are installed via these package managers:
+
+- Advance Package Tool (APT) for Linux.
+- Homebrew for MacOS.
+- Scoop for Windows.
+
+Since Windows does not come pre-installed with Scoop, the ability to install
+Scoop itself has also been added. Once the tools are installed, the user is
+informed, and asked to close and re-open VS Code.
+
+The command `C Toolkit: Search For Build Tools` in the command palette can also
+be used to manually trigger this.
+
+### Refreshing Project Configuration
+
+To refresh the project configurations in the `.vscode` folder, use the command
+`C Toolkit: Refresh Configurations` in the command palette. Use this carefully,
+as it overwrites previous configurations. For safe usage, the option to backup
+previous `.vscode` folder is also provided.
 
 ## Snippets
 

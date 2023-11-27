@@ -1,24 +1,30 @@
 const vscode = require('vscode');
 const fs     = require('fs');
 const path   = require('path');
-const utils  = require('./Utils');
+const { OsTypes, CheckOs, WrapSpacedComponents, GetWorkspacePath } = require('./CommonUtils');
 
 const BUILD_DIR_NAME      = 'build';
 const CMAKE_LISTS_NAME    = 'CMakeLists.txt';
 const BUILD_MARKER_NAME   = 'z_build_complete';
-const BUILD_DIR_PATH      = path.join(vscode.workspace.rootPath, BUILD_DIR_NAME);
-const CMAKE_LISTS_PATH    = path.join(vscode.workspace.rootPath, CMAKE_LISTS_NAME);
-const BUILD_MARKER_PATH   = path.join(BUILD_DIR_PATH, BUILD_MARKER_NAME);
-const EXECUTABLE_NAME     = `${vscode.workspace.name}${(utils.CheckOs() === utils.OsTypes.WINDOWS) ? '.exe' : ''}`;
-const EXECUTABLE_PATH     = path.join(BUILD_DIR_PATH, EXECUTABLE_NAME);
 const BUILD_TERMINAL_NAME = "CMake Build";
 const RUN_TERMINAL_NAME   = "CMake Run";
 
+/** @type {string} */
+let BUILD_DIR_PATH    = undefined;
+/** @type {string} */
+let CMAKE_LISTS_PATH  = undefined;
+/** @type {string} */
+let BUILD_MARKER_PATH = undefined;
+/** @type {string} */
+let EXECUTABLE_NAME   = undefined;
+/** @type {string} */
+let EXECUTABLE_PATH   = undefined;
+
 const BuildTypes = 
 {
-    RELEASE : 'Release',
-    TEST    : 'Test',
     DEBUG   : 'Debug',
+    TEST    : 'Test',
+    RELEASE : 'Release',
 };
 
 const BuildSubsystems = 
@@ -41,12 +47,41 @@ class BuildState
 };
 
 /**
+ * Synchronizes the paths used by the extension with the current workspace.
+ * It sets global path variables to their correct values based on the current workspace's root.
+ * This function is called before operations that require the workspace paths.
+ * 
+ * @returns {boolean}
+ * True if the workspace path is successfully determined and the global paths are set;
+ * undefined if no workspace is open, in which case an error message is displayed to the user.
+ */
+function syncPaths()
+{
+    let workspacePath = GetWorkspacePath();
+    if (!workspacePath)
+    {
+        vscode.window.showErrorMessage("No folder open in the workspace");
+        return undefined;
+    }
+
+    BUILD_DIR_PATH      = path.join(workspacePath, BUILD_DIR_NAME);
+    CMAKE_LISTS_PATH    = path.join(workspacePath, CMAKE_LISTS_NAME);
+    BUILD_MARKER_PATH   = path.join(BUILD_DIR_PATH, BUILD_MARKER_NAME);
+    EXECUTABLE_NAME     = `${vscode.workspace.name}${(CheckOs() === OsTypes.WINDOWS) ? '.exe' : ''}`;
+    EXECUTABLE_PATH     = path.join(BUILD_DIR_PATH, EXECUTABLE_NAME);
+
+    return true;
+}
+
+/**
  * Cleans the build directory.
  * 
  * @param {boolean} is_silent does not display verbose messages if true
  */
 async function cleanBuild(is_silent) 
 {
+    if (!syncPaths()) return;
+
     if (fs.existsSync(BUILD_DIR_PATH))
     {
         try 
@@ -79,6 +114,8 @@ async function cleanBuild(is_silent)
  */
 async function askNewBuild(buildState, message) 
 {
+    if (!syncPaths()) return;
+
     let response = await vscode.window.showInformationMessage(message, 'Yes', 'No');
     if (response === 'Yes') 
     {
@@ -98,7 +135,7 @@ async function askNewBuild(buildState, message)
 async function selectBuild(button, buildState)
 {
     // show a message that lets the user pick between build types
-    let newBuildType = await vscode.window.showQuickPick([BuildTypes.RELEASE, BuildTypes.DEBUG]);
+    let newBuildType = await vscode.window.showQuickPick([BuildTypes.DEBUG, BuildTypes.TEST, BuildTypes.RELEASE]);
 
     // if no selection or the same selection, do not do anything
     if (!newBuildType || newBuildType === buildState.type)
@@ -155,7 +192,9 @@ async function selectBuildSubsystem(button, buildState)
  */
 async function invokeBuild(buildState)
 {
-    const workspaceRoot = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0].uri.fsPath;
+    if (!syncPaths()) return;
+
+    const workspaceRoot = GetWorkspacePath();
 
     if (!workspaceRoot)
     {
@@ -180,8 +219,8 @@ async function invokeBuild(buildState)
      */
     const buildCommand    = `cmake -G Ninja -B ${BUILD_DIR_NAME} -D CMAKE_BUILD_TYPE=${buildState.type}`;
     const ninjaCommand    = 'ninja -C build';
-    const buildMarker     = `touch ${utils.WrapSpacedComponents(BUILD_MARKER_PATH)}`;
-    const terminalSepChar = (utils.CheckOs() === utils.OsTypes.WINDOWS) ? ';' : '&&';
+    const buildMarker     = `touch ${WrapSpacedComponents(BUILD_MARKER_PATH)}`;
+    const terminalSepChar = (CheckOs() === OsTypes.WINDOWS) ? ';' : '&&';
 
     const execString = `${buildCommand} ${terminalSepChar} ${ninjaCommand} ${terminalSepChar} ${buildMarker}`;
 
@@ -210,6 +249,8 @@ async function invokeBuild(buildState)
         // wait until build has completed
     }
 
+    if (fs.existsSync(BUILD_MARKER_PATH)) fs.rmSync(BUILD_MARKER_PATH);
+
     delay(10); // wese hi
 }
 
@@ -221,16 +262,18 @@ async function invokeBuild(buildState)
  */
 async function invokeRun(buildState, shouldClean) 
 {
+    if (!syncPaths()) return;
+
     if (shouldClean)
     {
-        await  cleanBuild(true);
+        await cleanBuild(true);
     }
 
     await invokeBuild(buildState);
 
     if (fs.existsSync(EXECUTABLE_PATH))
     {
-        const execString  = utils.WrapSpacedComponents(EXECUTABLE_PATH);
+        const execString  = WrapSpacedComponents(EXECUTABLE_PATH);
 
         // Try to find an existing terminal named "Tests Terminal"
         let terminal = vscode.window.terminals.find(t => t.name === RUN_TERMINAL_NAME);
@@ -270,6 +313,8 @@ async function delay(ms)
  */
 async function invokeTests(buildState) 
 {
+    if (!syncPaths()) return;
+
     buildState.type = BuildTypes.TEST;
     invokeRun(buildState, true);
 
@@ -285,6 +330,8 @@ async function invokeTests(buildState)
  */
 async function invokeDebug(buildState) 
 {
+    if (!syncPaths()) return;
+
     await cleanBuild(true);
     await invokeBuild(buildState);
     let debugProfileName = "c-toolkit launch";
