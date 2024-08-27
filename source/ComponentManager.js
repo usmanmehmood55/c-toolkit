@@ -4,6 +4,7 @@ const vscode       = require('vscode');
 const fileContents = require('./FileContents');
 const Logger       = require('./Logger');
 const { SanitizeFileName, GetWorkspacePath } = require('./CommonUtils');
+const { IsProjectCpp } = require('./ProjectManager');
 
 let createComponentDisposable;
 
@@ -110,16 +111,20 @@ async function SelectComponentProperties(component)
  * 
  * @param {Component} component        The component to compose files for.
  * @param {string}    componentDirPath The directory path where the component files will be located.
+ * @param {boolean}   isCpp            Should be true if the project is in C++
  * 
  * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
  */
-function ComposeComponentFiles(component, componentDirPath) 
+function ComposeComponentFiles(component, componentDirPath, isCpp) 
 {
+    const headerNameExt = `${component.name}` + '.' + (isCpp ? 'hpp' : 'h');
+    const sourceNameExt = `${component.name}` + '.' + (isCpp ? 'cpp' : 'c');
+
     let files = 
     [
-        { path: path.join(componentDirPath, 'src',     `${component.name}.c`), content: fileContents.Source(component.name)         },
-        { path: path.join(componentDirPath, 'include', `${component.name}.h`), content: fileContents.Header(component.name)         },
-        { path: path.join(componentDirPath, `CMakeLists.txt`),                 content: fileContents.ComponentCmake(component.name) },
+        { path: path.join(componentDirPath, 'src',     sourceNameExt), content: fileContents.Source(component.name, isCpp)   },
+        { path: path.join(componentDirPath, 'include', headerNameExt), content: fileContents.Header(component.name, isCpp)   },
+        { path: path.join(componentDirPath, `CMakeLists.txt`),         content: fileContents.ComponentCmake(component.name, isCpp) },
     ];
 
     fs.mkdirSync(path.join(componentDirPath, "src"), { recursive: true });
@@ -127,14 +132,14 @@ function ComposeComponentFiles(component, componentDirPath)
 
     if (component.mocked)
     {
-        files.push({ path: path.join(componentDirPath, 'mock', `mock_${component.name}.c`), content: fileContents.Mock(`${component.name}`) });
+        files.push({ path: path.join(componentDirPath, 'mock', `mock_${sourceNameExt}`), content: fileContents.Mock(`${component.name}`, isCpp) });
         fs.mkdirSync(path.join(componentDirPath, 'mock'), { recursive: true });
     }
 
     if (component.tested)
     {
-        files.push({ path: path.join(componentDirPath, 'test', `test_${component.name}.h`), content: fileContents.TestHeader(`${component.name}`) });
-        files.push({ path: path.join(componentDirPath, 'test', `test_${component.name}.c`), content: fileContents.TestSource(`${component.name}`) });
+        files.push({ path: path.join(componentDirPath, 'test', `test_${headerNameExt}`), content: fileContents.TestHeader(`${component.name}`, isCpp) });
+        files.push({ path: path.join(componentDirPath, 'test', `test_${sourceNameExt}`), content: fileContents.TestSource(`${component.name}`, isCpp) });
         fs.mkdirSync(path.join(componentDirPath, 'test'), { recursive: true });
     }
 
@@ -225,6 +230,8 @@ async function RegisterComponentToMainCmake(component)
  */
 async function createNewComponent()
 {
+    const isCpp = IsProjectCpp();
+
     let workspacePath = GetWorkspacePath();
     if (!workspacePath)
     {
@@ -247,7 +254,7 @@ async function createNewComponent()
     let componentDirPath = await PrepareComponentDirectory(component);
     if (componentDirPath === undefined) return undefined;
 
-    let files = ComposeComponentFiles(component, componentDirPath);
+    let files = ComposeComponentFiles(component, componentDirPath, isCpp);
     files.forEach(file => fs.writeFileSync(file.path, file.content));
     
     await RegisterComponentToMainCmake(component);

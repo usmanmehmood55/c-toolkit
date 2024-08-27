@@ -165,6 +165,7 @@ async function selectBuild(button, buildState)
  */
 async function selectBuildSubsystem(button, buildState)
 {
+    /** @type {string?} */
     let newBuildSubsystem = await vscode.window.showQuickPick([BuildSubsystems.NINJA, BuildSubsystems.MAKE]);
 
     // if no selection or the same selection, do not do anything

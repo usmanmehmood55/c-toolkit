@@ -1,5 +1,24 @@
 # Change Log
 
+## [v1.1.0](https://github.com/usmanmehmood55/c-toolkit/releases/tag/1.1.0)
+
+### Features
+
+- C++ support!
+- User can now create C++ projects and components. The extension automatically
+  the project type when it is opened in VS Code.
+
+### Improvements
+
+- When a component is created with its test files, `component.h` is also now included
+  in `test_component.c`. Previously only `test_component.h` was included.
+
+### Fixes
+
+- When a component is created with its test and mock files, the header comments would
+  indicate source files as header files. E.g., a comment in `mock_comment.c` would
+  say that the file is `mock_comment.h`. This has been fixed.
+
 ## [v0.2.4](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.4)
 
 ### Features
