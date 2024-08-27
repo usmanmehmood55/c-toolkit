@@ -2,27 +2,21 @@ const fs                   = require('fs');
 const path                 = require('path');
 const vscode               = require('vscode');
 const fileContents         = require('./FileContents');
-const { SanitizeFileName } = require('./CommonUtils');
 const Logger               = require('./Logger');
+const { SanitizeFileName, GetWorkspacePath } = require('./CommonUtils');
 
 /** @type {vscode.Disposable} */
-let createProjectDisposable;
+let CommandCreateCProject;
+
+/** @type {vscode.Disposable} */
+let CommandCreateCppProject;
+
+/** @type {Project} */
+let CurrentProject = undefined;
 
 /**
- * Registers the 'createProject' command in the extension.
- * 
- * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
+ * Self explanatory
  */
-function CreateProjectCommand(context)
-{
-    if (createProjectDisposable)
-    {
-        createProjectDisposable.dispose();
-    }
-    createProjectDisposable = vscode.commands.registerCommand("extension.createProject", createNewProject);
-    context.subscriptions.push(createProjectDisposable);
-}
-
 class Project
 {
     /**
@@ -38,6 +32,86 @@ class Project
         this.cmakePath = null;
         this.ninjaPath = null;
     }
+}
+
+/**
+ * Reads the root CMakeLists.txt in the open workspace to decide if the
+ * project is for C++ or C.
+ * 
+ * @returns {boolean?} True if it's C++, False if C, undefined if it's unable to find.
+ */
+function IsProjectCpp()
+{
+    /** @type {boolean?} */
+    let isCpp = undefined;
+
+    const rootPath = GetWorkspacePath();
+    const cmakeListsPath = path.join(rootPath, 'CMakeLists.txt');
+
+    try
+    {
+        const data = fs.readFileSync(cmakeListsPath, 'utf8');
+        const languageLine = data.split('\n').find(line => line.includes('LANGUAGES'));
+        if (languageLine)
+        {
+            if (languageLine.includes('CXX') || languageLine.includes('C++'))
+            {
+                isCpp = true;
+            }
+            else if (languageLine.includes('C'))
+            {
+                isCpp = false;
+            }
+            else
+            {
+                isCpp = undefined;
+            }
+        }
+        else
+        {
+            const msg = 'Unable to determine the project language from CMakeLists.txt';
+            Logger.Warning(msg);
+            vscode.window.showWarningMessage(msg);
+        }
+    }
+    catch (err)
+    {
+        const msg = `Failed to read CMakeLists.txt: ${err.message}`;
+        Logger.Warning(msg);
+        vscode.window.showWarningMessage(msg);
+    }
+
+    return isCpp;
+}
+
+/**
+ * Registers the 'createProject' command in the extension.
+ * 
+ * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
+ */
+function CreateCProjectCommand(context)
+{
+    if (CommandCreateCProject)
+    {
+        CommandCreateCProject.dispose();
+    }
+    CommandCreateCProject = vscode.commands.registerCommand("extension.createCProject", createNewCProject);
+    context.subscriptions.push(CommandCreateCProject);
+}
+
+/**
+ * Registers the 'createProject' command in the extension.
+ * 
+ * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
+ */
+function CreateCppProjectCommand(context)
+{
+    if (CommandCreateCppProject)
+    {
+        CommandCreateCppProject.dispose();
+    }
+    CommandCreateCppProject = vscode.commands.registerCommand("extension.createCppProject", createNewCppProject);
+    context.subscriptions.push(CommandCreateCppProject);
 }
 
 /**
@@ -65,17 +139,23 @@ function ComposeVscodeFiles(projectDirPath)
 /**
  * Composes a list of files to be created for a project.
  * 
- * @param {Project} project        The project to compose files for.
  * @param {string}  projectDirPath The directory path where the project files will be located.
+ * @param {boolean} isCpp          Should be true if the project is in C++
  * 
  * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
  */
-function ComposeSourceFiles(project, projectDirPath) 
+function ComposeSourceFiles(projectDirPath, isCpp) 
 {
     let files = 
     [
-        { path: path.join(projectDirPath, "main.c"),         content: fileContents.MainSource()   },
-        { path: path.join(projectDirPath, "CMakeLists.txt"), content: fileContents.ProjectCmake() },
+        {
+            path    : path.join(projectDirPath, isCpp ? 'main.cpp' : 'main.c'),
+            content : fileContents.MainSource(isCpp),
+        },
+        {
+            path    : path.join(projectDirPath, "CMakeLists.txt"),
+            content : fileContents.ProjectCmake(isCpp)
+        },
     ];
 
     return files;
@@ -144,20 +224,22 @@ async function PrepareProjectDirectory(project)
 /**
  * Handles the creation of a new project.
  * 
+ * @param {boolean} isCpp If the project language is C++ or not.
+ * 
  * @returns {Promise<void|undefined>}
  * A promise that resolves when the project is created, or undefined if the
  * creation was cancelled or the project already existed.
  */
-async function createNewProject()
+async function createNewProject(isCpp)
 {
-    let project = new Project(undefined);
+    CurrentProject = new Project(undefined);
 
-    let projectDirPath = await PrepareProjectDirectory(project);
+    let projectDirPath = await PrepareProjectDirectory(CurrentProject);
     if (projectDirPath === undefined) return undefined;
 
     /** @type {Array<{ path: string, content: string }>} */
     let files = [];
-    let sourceFiles = ComposeSourceFiles(project, projectDirPath);
+    let sourceFiles = ComposeSourceFiles(projectDirPath, isCpp);
     let vscodeFiles = ComposeVscodeFiles(projectDirPath);
 
     files = [...files, ...sourceFiles];
@@ -172,8 +254,22 @@ async function createNewProject()
     Logger.Info(`New project created in ${projectDirPath}`);
 }
 
+/** @returns {Promise<void>} */
+async function createNewCProject()
+{
+    createNewProject(false);
+}
+
+/** @returns {Promise<void>} */
+async function createNewCppProject()
+{
+    createNewProject(true);
+}
+
 module.exports = 
 {
-    CreateProjectCommand,
-    ComposeVscodeFiles
+    CreateCProjectCommand,
+    CreateCppProjectCommand,
+    ComposeVscodeFiles,
+    IsProjectCpp,
 };

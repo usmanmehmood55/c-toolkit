@@ -13,6 +13,9 @@
         },
         "sourceType": "module"
     },
+    "plugins": [
+        "jsdoc"
+    ],
     "rules": {
         "no-const-assign"     : "warn",
         "no-this-before-super": "warn",
@@ -27,6 +30,27 @@
         "curly"      : ["error", "multi-line"],   // Require curly braces for multi-line blocks
         "indent"     : ["error", 4],              // Use 4 spaces for indentation (or adjust to your preference)
         "semi"       : ["error", "always"],       // Require semicolons at the end of statements
-        "no-tabs"    : "error"                    // Disallow tabs, as they are not C-style
+        "no-tabs"    : "error",                   // Disallow tabs, as they are not C-style
+
+        // Add these lines for JSDoc enforcement
+        "jsdoc/require-jsdoc": [
+            "warn",
+            {
+                "require": {
+                    "FunctionDeclaration"     : true,
+                    "MethodDefinition"        : true,
+                    "ClassDeclaration"        : true,
+                    "ArrowFunctionExpression" : true,
+                    "FunctionExpression"      : true
+                }
+            }
+        ],
+        "jsdoc/require-param"   : "warn",
+        "jsdoc/require-returns" : "warn"
+    },
+    "settings": {
+        "jsdoc": {
+            "mode": "typescript"
+        }
     }
 }

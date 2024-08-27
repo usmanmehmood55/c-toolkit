@@ -1,0 +1,15 @@
+.git
+.vscode
+images
+node_modules
+source/Cmake
+test
+.eslintrc.json
+.gitignore
+.mark
+.markdownlint.json
+.vscodeignore
+CHANGELOG.md
+CONTRIBUTING.md
+ingestify_ignore.txt
+package-lock.json
