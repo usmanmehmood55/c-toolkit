@@ -17,6 +17,8 @@ let buildState = new BuildState(BuildTypes.DEBUG,  BuildSubsystems.NINJA);
  */
 function activate(context) 
 {
+    Logger.Info("C C++ Toolkit extension activated");
+
     const buttons = 
     [
         new StatusBarButton("Build Type", `$(gear) ${buildState.type}`, "extension.selectBuild", "Click to switch build type",  16),
@@ -121,7 +123,7 @@ function createStatusBarItem(button, context)
 /** @returns {void} */
 function deactivate()
 {
-    Logger.Info("C Toolkit extension deactivated");
+    Logger.Info("C C++ Toolkit extension deactivated");
 }
 
 module.exports = 
