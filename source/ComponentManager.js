@@ -156,7 +156,7 @@ function ComposeComponentFiles(component, componentDirPath, isCpp)
  */
 async function PrepareComponentDirectory(component)
 {
-    let componentDirPath = path.join(GetWorkspacePath(), 'Components', component.name);
+    let componentDirPath = path.join(GetWorkspacePath(), 'components', component.name);
 
     if (fs.existsSync(componentDirPath))
     {
