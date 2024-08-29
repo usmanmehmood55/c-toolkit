@@ -1,17 +1,16 @@
-# C Toolkit
+# C C++ Toolkit
 
-A VSCode extension to help create, build, run, debug and test C projects
+A VSCode extension to help create, build, run, debug and test C and C++ projects
 using CMake.
-
-![banner](images/banner.jpg)
 
 ## Features
 
-- Status bar buttons.
-- Command for creating a new project.
-- Command for generating a new component (library).
-- Checks for and installs missing build tools
-- Snippets
+- [Status bar buttons](#status-bar-buttons).
+- [Command for creating a new project](#project-generation).
+- [Command for generating a new component (library)](#component-generation).
+- [Checks for and installs missing build tools](#missing-build-tools).
+- [Command for refreshing project VSCode configurations](#refreshing-project-configuration).
+- [Snippets](#snippets)
 
 ## Important Note
 
@@ -42,9 +41,10 @@ Seven status bar buttons have been implemented to:
 
 ## Project Generation
 
-A new CMake project can be created with necessary biolerplate code using
-the `C Toolkit: Create New Project` command in the command palette. To
-access the command palette, use `ctrl + shift + p`.
+A new C or C++ project can be created with necessary biolerplate code using
+the `C C++ Toolkit: Create New C Project` or `C C++ Toolkit: Create New C++ Project`
+commands in the command palette. To access the command palette, use
+`ctrl + shift + p`.
 
 It would then ask the user to select a base folder in which the project
 folder is to be placed. When a base folder is selected, the user would be
@@ -54,9 +54,10 @@ asked to input the project name.
 
 The new project folder would contain these pre-configured items:
 
-- .vscode folder
-- CMakeLists.txt
-- main.c
+- `.vscode` folder
+- `CMakeLists.txt`
+- `main.c` if it is a C project.
+- `main.cpp` if it is a C++ project.
 
 The user can then start adding their own libraries or "components" via the
 component generation feature.
@@ -64,7 +65,7 @@ component generation feature.
 ## Component Generation
 
 A new component can be created with some biolerplate code by using the
-`C Toolkit: Create New Component` command in the command palette. It
+`C C++ Toolkit: Create New Component` command in the command palette. It
 would then ask the user to input the component name and give the option
 to make the component "mocked" and "tested".
 
@@ -88,14 +89,16 @@ enabled during the build invocation to compile the test files as well.
 
 A component would have the following files
 
-- include/component.h
-- src/component.c
-- mock/mock_component.c
-- test/test_component.h
-- test/test_component.c
-- CMakeLists.txt
+- `include/component.h`
+- `src/component.c`
+- `mock/mock_component.c`
+- `test/test_component.h`
+- `test/test_component.c`
+- `CMakeLists.txt`
 
-It would also modify the root CMakeLists.txt to add the new component
+It would also modify the root CMakeLists.txt to add the new component. Naturally
+if the project is C++ instead of C, the `.h` files will be `.hpp` and `.c` files
+will be `.cpp`.
 
 ## Missing Build Tools
 
@@ -120,13 +123,13 @@ Since Windows does not come pre-installed with Scoop, the ability to install
 Scoop itself has also been added. Once the tools are installed, the user is
 informed, and asked to close and re-open VS Code.
 
-The command `C Toolkit: Search For Build Tools` in the command palette can also
-be used to manually trigger this.
+The command `C C++ Toolkit: Search For Build Tools` in the command palette can
+also be used to manually trigger this.
 
-### Refreshing Project Configuration
+## Refreshing Project Configuration
 
 To refresh the project configurations in the `.vscode` folder, use the command
-`C Toolkit: Refresh Configurations` in the command palette. Use this carefully,
+`C C++ Toolkit: Refresh Configurations` in the command palette. Use this carefully,
 as it overwrites previous configurations. For safe usage, the option to backup
 previous `.vscode` folder is also provided.
 

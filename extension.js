@@ -17,6 +17,8 @@ let buildState = new BuildState(BuildTypes.DEBUG,  BuildSubsystems.NINJA);
  */
 function activate(context) 
 {
+    Logger.Info("C C++ Toolkit extension activated");
+
     const buttons = 
     [
         new StatusBarButton("Build Type", `$(gear) ${buildState.type}`, "extension.selectBuild", "Click to switch build type",  16),
@@ -31,7 +33,8 @@ function activate(context)
     const disposables = buttons.map(button => createStatusBarItem(button, context));
 
     CreateComponentCommand(context);
-    ProjectManager.CreateProjectCommand(context);
+    ProjectManager.CreateCProjectCommand(context);
+    ProjectManager.CreateCppProjectCommand(context);
     RefreshConfigsCommand(context);
     ToolsManager.SearchForToolsCommand(context);
     ToolsManager.SearchForTools();
@@ -46,14 +49,18 @@ function activate(context)
     });
 }
 
+/**
+ * Status bar button.
+ */
 class StatusBarButton
 {
     /**
-     * @param {string} name 
-     * @param {string} text 
-     * @param {string} command 
-     * @param {string} tooltip 
-     * @param {number} priority
+     * Creates a status bar button.
+     * @param {string} name     The name of the button, used for identification and action mapping.
+     * @param {string} text     The text and icon displayed on the button.
+     * @param {string} command  The command ID associated with this button.
+     * @param {string} tooltip  The tooltip text displayed when hovering over the button.
+     * @param {number} priority The priority order of the button in the status bar (higher values appear to the left).
      */
     constructor(name, text, command, tooltip, priority) 
     {
@@ -82,12 +89,19 @@ function createStatusBarItem(button, context)
 
     const buttonActionsMap =
     {
+        /** @returns {Promise<void>}  */
         "Build Type": () => buttonActions.selectBuild(item, buildState).then((selectedBuild) => { buildState = selectedBuild; }),   // eslint-disable-line brace-style
+        /** @returns {Promise<void>} */
         "Clean"     : () => buttonActions.cleanBuild(false),
+        /** @returns {Promise<void>} */
         "Build"     : () => buttonActions.invokeBuild(buildState),
+        /** @returns {Promise<void>} */
         "Run"       : () => buttonActions.invokeRun(buildState, true),
+        /** @returns {Promise<void>} */
         "Debug"     : () => buttonActions.invokeDebug(buildState),
+        /** @returns {Promise<void>} */
         "Test"      : () => buttonActions.invokeTests(buildState),
+        /** @returns {Promise<void>} */
         "Debug Test": () => buttonActions.invokeDebug(buildState),
     };
 
@@ -106,9 +120,10 @@ function createStatusBarItem(button, context)
     return item;
 }
 
+/** @returns {void} */
 function deactivate()
 {
-    Logger.Info("C Toolkit extension deactivated");
+    Logger.Info("C C++ Toolkit extension deactivated");
 }
 
 module.exports = 
