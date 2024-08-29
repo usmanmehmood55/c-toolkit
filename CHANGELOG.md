@@ -1,5 +1,18 @@
 # Change Log
 
+## [v2.0.0](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.0)
+
+### Info
+
+All changes between v1.0.0 and v1.1.2 are combined into this release, v2.0.0.
+
+## [v1.1.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/1.1.2)
+
+### Improvements
+
+- Change of name, extension is now "C C++ Toolkit".
+- Added relevant categories and keywords in `package.json`.
+
 ## [v1.1.0](https://github.com/usmanmehmood55/c-toolkit/releases/tag/1.1.0)
 
 ### Features
@@ -18,6 +31,12 @@
 - When a component is created with its test and mock files, the header comments would
   indicate source files as header files. E.g., a comment in `mock_comment.c` would
   say that the file is `mock_comment.h`. This has been fixed.
+
+## [v1.0.0](https://github.com/usmanmehmood55/c-toolkit/releases/tag/1.0.0)
+
+### Info
+
+All changes between v0.0.1 and v0.2.4 are combined into this release, v1.0.0.
 
 ## [v0.2.4](https://github.com/usmanmehmood55/c-toolkit/releases/tag/0.2.4)
 
