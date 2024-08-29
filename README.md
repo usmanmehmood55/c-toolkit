@@ -1,4 +1,4 @@
-# C Toolkit
+# C C++ Toolkit
 
 A VSCode extension to help create, build, run, debug and test C and C++ projects
 using CMake.
@@ -42,7 +42,7 @@ Seven status bar buttons have been implemented to:
 ## Project Generation
 
 A new C or C++ project can be created with necessary biolerplate code using
-the `C Toolkit: Create New C Project` or `C Toolkit: Create New C++ Project`
+the `C C++ Toolkit: Create New C Project` or `C C++ Toolkit: Create New C++ Project`
 commands in the command palette. To access the command palette, use
 `ctrl + shift + p`.
 
@@ -65,7 +65,7 @@ component generation feature.
 ## Component Generation
 
 A new component can be created with some biolerplate code by using the
-`C Toolkit: Create New Component` command in the command palette. It
+`C C++ Toolkit: Create New Component` command in the command palette. It
 would then ask the user to input the component name and give the option
 to make the component "mocked" and "tested".
 
@@ -123,13 +123,13 @@ Since Windows does not come pre-installed with Scoop, the ability to install
 Scoop itself has also been added. Once the tools are installed, the user is
 informed, and asked to close and re-open VS Code.
 
-The command `C Toolkit: Search For Build Tools` in the command palette can also
-be used to manually trigger this.
+The command `C C++ Toolkit: Search For Build Tools` in the command palette can
+also be used to manually trigger this.
 
 ## Refreshing Project Configuration
 
 To refresh the project configurations in the `.vscode` folder, use the command
-`C Toolkit: Refresh Configurations` in the command palette. Use this carefully,
+`C C++ Toolkit: Refresh Configurations` in the command palette. Use this carefully,
 as it overwrites previous configurations. For safe usage, the option to backup
 previous `.vscode` folder is also provided.
 
