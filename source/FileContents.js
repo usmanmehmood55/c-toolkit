@@ -60,6 +60,30 @@ function ComponentCmake(componentName, isCpp)
 }
 
 /**
+ * Creates a CMakeLists file for a component with references to its header, source, mock and test files.
+ * 
+ * @param {string} componentName Name of the component.
+ * @param {boolean} isCpp Should be true if the project is in C++
+ * 
+ * @returns {string} contents of component CmakeLists
+ */
+function ComponentCmakeSimple(componentName, isCpp)
+{
+    const ext = isCpp ? 'cpp' : 'c';
+
+    const cmakeContent = 
+        `# Start of ${componentName} CMakeLists.txt`                                                        + "\n" +
+        ""                                                                                                  + "\n" +
+        `set(CURRENT_DIR_NAME ${componentName})`                                                            + "\n" +
+        `target_sources(\${PROJECT_NAME} PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/\${CURRENT_DIR_NAME}.${ext})` + "\n" +
+        "target_include_directories(${PROJECT_NAME} PRIVATE .)"                                             + "\n" +
+        ""                                                                                                  + "\n" +
+        `# End of ${componentName} CMakeLists.txt`                                                          + "\n" ;
+
+    return cmakeContent;
+}
+
+/**
  * Generates a Doxygen style file header containing the file, author, brief,
  * version, date and copyright tags.
  * 
@@ -498,6 +522,7 @@ function TasksJson()
 module.exports = 
 {
     ComponentCmake,
+    ComponentCmakeSimple,
     Header,
     TestHeader,
     TestSource,

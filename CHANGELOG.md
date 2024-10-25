@@ -1,5 +1,25 @@
 # Change Log
 
+## [v2.0.3](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.3)
+
+### Improvements
+
+- When a component is not tested and mocked, its source and header files are
+  placed in the component folder itself instead of being placed in the `src`
+  and `include` subfolders. This simplifies the project structure.
+
+### Fixes
+
+- In root `CMakeLists.txt`, some flags were hardcoded for C language, they now use
+  the appropriate language.
+
+## [v2.0.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.2)
+
+### Fixes
+
+- CMake expected `components` folder, ext created `Components` folder. This
+  has been fixed.
+
 ## [v2.0.0](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.0)
 
 ### Info
