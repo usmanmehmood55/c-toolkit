@@ -3,29 +3,22 @@
 A VSCode extension to help create, build, run, debug and test C and C++ projects
 using CMake.
 
+![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/UsmanMehmood.c-toolkit)
+![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/UsmanMehmood.c-toolkit)
+
 ## Features
 
 - [Status bar buttons](#status-bar-buttons).
-- [Command for creating a new project](#project-generation).
-- [Command for generating a new component (library)](#component-generation).
+- [Generates new C and C++ projects](#project-generation).
+- [Generates new libraries (components)](#component-generation).
 - [Checks for and installs missing build tools](#missing-build-tools).
-- [Command for refreshing project VSCode configurations](#refreshing-project-configuration).
+- [Generates project VSCode configurations](#refreshing-project-configuration).
 - [Snippets](#snippets)
 
 ## Important Note
 
 If you find a bug or have a suggestion, please [open a new issue](https://github.com/usmanmehmood55/c-toolkit/issues)
 and help me make this extension better. :)
-
-## Requirements
-
-The following tools are required by extension to work properly. If they are not
-installed, the extension attempts to install them by itself.
-
-1. GCC
-2. GDB
-3. CMake
-4. Ninja
 
 ## Status Bar Buttons
 
@@ -153,3 +146,15 @@ The extension adds useful snippets for creating functions and attributes.
   - weak (`weak`)
   
   ![attributes snippet](images/attributes.gif)
+
+## Extras
+
+Do you want to do learn how to manually create new projects, manually compile
+your code and install build tools? Check out my blog on Medium. This extension
+more or less automates the same things mentioned in this blog.
+
+[Setup Guide for C/C++ Programming on VSCode](https://medium.com/p/b6047463dc1c)
+
+Also check out the website for this extension.
+
+[cpptoolkit.com](https://cpptoolkit.com/)

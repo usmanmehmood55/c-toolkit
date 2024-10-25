@@ -23,6 +23,9 @@ function CreateComponentCommand(context)
     context.subscriptions.push(createComponentDisposable);
 }
 
+/**
+ * Creates a new Component instance.
+ */
 class Component
 {
     /**
@@ -107,6 +110,18 @@ async function SelectComponentProperties(component)
 }
 
 /**
+ * Simple components only have the header and source files. Not mocked or tested.
+ * 
+ * @param {Component} component The component to compose files for.
+ * 
+ * @returns true is the component is simple.
+ */
+function isComponentSimple(component)
+{
+    return component.mocked === false && component.tested === false;
+}
+
+/**
  * Composes a list of files to be created for a component.
  * 
  * @param {Component} component        The component to compose files for.
@@ -119,28 +134,45 @@ function ComposeComponentFiles(component, componentDirPath, isCpp)
 {
     const headerNameExt = `${component.name}` + '.' + (isCpp ? 'hpp' : 'h');
     const sourceNameExt = `${component.name}` + '.' + (isCpp ? 'cpp' : 'c');
+    const isSimple = isComponentSimple(component);
 
-    let files = 
-    [
-        { path: path.join(componentDirPath, 'src',     sourceNameExt), content: fileContents.Source(component.name, isCpp)   },
-        { path: path.join(componentDirPath, 'include', headerNameExt), content: fileContents.Header(component.name, isCpp)   },
-        { path: path.join(componentDirPath, `CMakeLists.txt`),         content: fileContents.ComponentCmake(component.name, isCpp) },
-    ];
+    /** @type {Array<{path: string, content: string}>} */
+    let files;
 
-    fs.mkdirSync(path.join(componentDirPath, "src"), { recursive: true });
-    fs.mkdirSync(path.join(componentDirPath, "include"), { recursive: true });
-
-    if (component.mocked)
+    if (isSimple)
     {
-        files.push({ path: path.join(componentDirPath, 'mock', `mock_${sourceNameExt}`), content: fileContents.Mock(`${component.name}`, isCpp) });
-        fs.mkdirSync(path.join(componentDirPath, 'mock'), { recursive: true });
+        files = 
+        [
+            { path: path.join(componentDirPath, sourceNameExt),    content: fileContents.Source(component.name, isCpp)               },
+            { path: path.join(componentDirPath, headerNameExt),    content: fileContents.Header(component.name, isCpp)               },
+            { path: path.join(componentDirPath, `CMakeLists.txt`), content: fileContents.ComponentCmakeSimple(component.name, isCpp) },
+        ];
     }
-
-    if (component.tested)
+    else
     {
-        files.push({ path: path.join(componentDirPath, 'test', `test_${headerNameExt}`), content: fileContents.TestHeader(`${component.name}`, isCpp) });
-        files.push({ path: path.join(componentDirPath, 'test', `test_${sourceNameExt}`), content: fileContents.TestSource(`${component.name}`, isCpp) });
-        fs.mkdirSync(path.join(componentDirPath, 'test'), { recursive: true });
+        files = 
+        [
+            { path: path.join(componentDirPath, 'src',     sourceNameExt), content: fileContents.Source(component.name, isCpp)         },
+            { path: path.join(componentDirPath, 'include', headerNameExt), content: fileContents.Header(component.name, isCpp)         },
+            { path: path.join(componentDirPath, `CMakeLists.txt`),         content: fileContents.ComponentCmake(component.name, isCpp) },
+        ];
+
+        fs.mkdirSync(path.join(componentDirPath, "src"), { recursive: true });
+        fs.mkdirSync(path.join(componentDirPath, "include"), { recursive: true });
+
+        if (component.mocked)
+        {
+            files.push({ path: path.join(componentDirPath, 'mock', `mock_${sourceNameExt}`), content: fileContents.Mock(`${component.name}`, isCpp) });
+            fs.mkdirSync(path.join(componentDirPath, 'mock'), { recursive: true });
+        }
+    
+        if (component.tested)
+        {
+            files.push({ path: path.join(componentDirPath, 'test', `test_${headerNameExt}`), content: fileContents.TestHeader(`${component.name}`, isCpp) });
+            files.push({ path: path.join(componentDirPath, 'test', `test_${sourceNameExt}`), content: fileContents.TestSource(`${component.name}`, isCpp) });
+            fs.mkdirSync(path.join(componentDirPath, 'test'), { recursive: true });
+        }
+
     }
 
     return files;
@@ -156,7 +188,7 @@ function ComposeComponentFiles(component, componentDirPath, isCpp)
  */
 async function PrepareComponentDirectory(component)
 {
-    let componentDirPath = path.join(GetWorkspacePath(), 'Components', component.name);
+    const componentDirPath = path.join(GetWorkspacePath(), 'components', component.name);
 
     if (fs.existsSync(componentDirPath))
     {
@@ -256,7 +288,7 @@ async function createNewComponent()
 
     let files = ComposeComponentFiles(component, componentDirPath, isCpp);
     files.forEach(file => fs.writeFileSync(file.path, file.content));
-    
+
     await RegisterComponentToMainCmake(component);
 
     Logger.Info(`Component ${component.name} created.`);
