@@ -15,7 +15,7 @@ let buildState = new BuildState(BuildTypes.DEBUG,  BuildSubsystems.NINJA);
 /**
  * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
  */
-function activate(context) 
+function activate(context)
 {
     Logger.Info("C C++ Toolkit extension activated");
 
@@ -62,7 +62,7 @@ class StatusBarButton
      * @param {string} tooltip  The tooltip text displayed when hovering over the button.
      * @param {number} priority The priority order of the button in the status bar (higher values appear to the left).
      */
-    constructor(name, text, command, tooltip, priority) 
+    constructor(name, text, command, tooltip, priority)
     {
         this.name          = name;
         this.text          = text;
