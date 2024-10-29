@@ -248,11 +248,45 @@ async function invokeBuild(buildState)
     while(!fs.existsSync(BUILD_MARKER_PATH))
     {
         // wait until build has completed
+        await delay(10);
     }
 
-    if (fs.existsSync(BUILD_MARKER_PATH)) fs.rmSync(BUILD_MARKER_PATH);
+    await attemptFileDeletion(BUILD_MARKER_PATH, 3, 100); // Retry up to 5 times with 200ms delay
 
     delay(10); // wese hi
+}
+
+/**
+ * Attempts to delete a file with retries in case of EBUSY error.
+ * 
+ * @param {string} filePath - Path of the file to delete.
+ * @param {number} retries - Number of retries before giving up.
+ * @param {number} delayMs - Delay between retries in milliseconds.
+ */
+async function attemptFileDeletion(filePath, retries, delayMs)
+{
+    for (let i = 0; i < retries; i++)
+    {
+        try
+        {
+            if (fs.existsSync(filePath)) 
+            {
+                fs.rmSync(filePath);
+            }
+            return;
+        } 
+        catch (err) 
+        {
+            if (err.code === 'EBUSY' && i < retries - 1) 
+            {
+                await delay(delayMs);
+            } 
+            else 
+            {
+                throw err;
+            }
+        }
+    }
 }
 
 /**
