@@ -7,20 +7,33 @@ on:
       - pre_release
 
 jobs:
-  validate_tokens:
+  build_and_release:
     runs-on: ubuntu-latest
+    if     : github.event.head_commit.author.email != 'github-actions[bot]@users.noreply.github.com'
+    outputs: 
+      isPrerelease: ${{ steps.set_prerelease.outputs.isPrerelease }}
+
     steps:
-      - name: Check VSCE_PUBLISH_PAT validity
+      - name: Set up Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '18.x'
+
+      - name: Install vsce
+        run: |
+          npm install -g vsce
+
+      - name: Validating VSCE PAT
         run: |
           echo "Checking VSCE_PUBLISH_PAT..."
-          if ! vsce ls-publishers -p ${{ secrets.VSCE_PUBLISH_PAT }}; then
+          if ! vsce verify-pat -p ${{ secrets.VSCE_PUBLISH_PAT }}; then
             echo "VSCE_PUBLISH_PAT is invalid or expired."
             exit 1
           else
             echo "VSCE_PUBLISH_PAT is valid."
           fi
 
-      - name: Check PERSONAL_ACCESS_TOKEN validity
+      - name: Validating GitHub PAT
         run: |
           echo "Checking PERSONAL_ACCESS_TOKEN..."
           response=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" https://api.github.com/user)
@@ -31,26 +44,10 @@ jobs:
             echo "PERSONAL_ACCESS_TOKEN is valid."
           fi
 
-  build_and_release:
-    runs-on: ubuntu-latest
-    needs  : validate_tokens
-    if     : github.event.head_commit.author.email != 'github-actions[bot]@users.noreply.github.com'
-    outputs: 
-      isPrerelease: ${{ steps.set_prerelease.outputs.isPrerelease }}
-
-    steps:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           fetch-depth: 2
-
-      - name: Use Node.js
-        uses: actions/setup-node@v1
-        with:
-          node-version: '18.x'
-
-      - name: Install vsce
-        run : npm install -g vsce
 
       - name: Determine release type
         id  : set_prerelease
