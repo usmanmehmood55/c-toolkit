@@ -3,7 +3,7 @@
     "publisher": "UsmanMehmood",
     "displayName": "C C++ Toolkit",
     "description": "Create, compile and run C and C++ applications easily using CMake. The only C/C++ code runner you'll need!",
-    "version": "2.0.3",
+    "version": "2.0.4",
     "icon": "images/icon.png",
     "repository": {
         "type": "git",
@@ -88,8 +88,8 @@
         "debug"
     ],
     "keywords": [
-        "C",
-        "C++",
+        "c",
+        "c++",
         "code runner",
         "build",
         "debug",

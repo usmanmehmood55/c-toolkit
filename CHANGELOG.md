@@ -1,5 +1,19 @@
 # Change Log
 
+## [v2.0.4](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.4)
+
+### Improvements
+
+- The run button does not perform a clean build before running. The decision to
+  clean the build is now left to the user, by using the "clean" button.
+- Added PAT validations to GitHub workflow.  
+
+### Fixes
+
+- The build marker file is now properly created and deleted, previously it was
+  sometimes causing this error message: "`EBUSY: resource busy or locked, unlink
+  <project_folder>\build\z_build_complete`".
+
 ## [v2.0.3](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.3)
 
 ### Improvements
