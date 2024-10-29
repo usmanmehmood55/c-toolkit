@@ -14,18 +14,40 @@ jobs:
       isPrerelease: ${{ steps.set_prerelease.outputs.isPrerelease }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
-
-      - name: Use Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v1
         with:
           node-version: '18.x'
 
       - name: Install vsce
-        run : npm install -g vsce
+        run: |
+          npm install -g vsce
+
+      - name: Validating VSCE PAT
+        run: |
+          echo "Checking VSCE_PUBLISH_PAT..."
+          if ! vsce verify-pat -p ${{ secrets.VSCE_PUBLISH_PAT }} UsmanMehmood; then
+            echo "VSCE_PUBLISH_PAT is invalid or expired."
+            exit 1
+          else
+            echo "VSCE_PUBLISH_PAT is valid."
+          fi
+
+      - name: Validating GitHub PAT
+        run: |
+          echo "Checking PERSONAL_ACCESS_TOKEN..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" https://api.github.com/user)
+          if [ "$response" -ne 200 ]; then
+            echo "PERSONAL_ACCESS_TOKEN is invalid or expired."
+            exit 1
+          else
+            echo "PERSONAL_ACCESS_TOKEN is valid."
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
 
       - name: Determine release type
         id  : set_prerelease

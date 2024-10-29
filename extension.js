@@ -96,7 +96,7 @@ function createStatusBarItem(button, context)
         /** @returns {Promise<void>} */
         "Build"     : () => buttonActions.invokeBuild(buildState),
         /** @returns {Promise<void>} */
-        "Run"       : () => buttonActions.invokeRun(buildState, true),
+        "Run"       : () => buttonActions.invokeRun(buildState, false),
         /** @returns {Promise<void>} */
         "Debug"     : () => buttonActions.invokeDebug(buildState),
         /** @returns {Promise<void>} */
