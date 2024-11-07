@@ -60,6 +60,30 @@ function ComponentCmake(componentName, isCpp)
 }
 
 /**
+ * Creates a CMakeLists file for a component with references to its header, source, mock and test files.
+ * 
+ * @param {string} componentName Name of the component.
+ * @param {boolean} isCpp Should be true if the project is in C++
+ * 
+ * @returns {string} contents of component CmakeLists
+ */
+function ComponentCmakeSimple(componentName, isCpp)
+{
+    const ext = isCpp ? 'cpp' : 'c';
+
+    const cmakeContent = 
+        `# Start of ${componentName} CMakeLists.txt`                                                        + "\n" +
+        ""                                                                                                  + "\n" +
+        `set(CURRENT_DIR_NAME ${componentName})`                                                            + "\n" +
+        `target_sources(\${PROJECT_NAME} PRIVATE \${CMAKE_CURRENT_SOURCE_DIR}/\${CURRENT_DIR_NAME}.${ext})` + "\n" +
+        "target_include_directories(${PROJECT_NAME} PRIVATE .)"                                             + "\n" +
+        ""                                                                                                  + "\n" +
+        `# End of ${componentName} CMakeLists.txt`                                                          + "\n" ;
+
+    return cmakeContent;
+}
+
+/**
  * Generates a Doxygen style file header containing the file, author, brief,
  * version, date and copyright tags.
  * 
@@ -310,45 +334,45 @@ function ProjectCmake(isCpp)
 
     const content = 
 
-    "# Start of root CMakeLists.txt"                                                             + "\n" +
-    ""                                                                                           + "\n" +
-    "cmake_minimum_required(VERSION 3.10)"                                                       + "\n" +
-    ""                                                                                           + "\n" +
-    "# Setting the project name based on the root folder name"                                   + "\n" +
-    "get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)"                        + "\n" +
-    `project(\${PROJECT_NAME} VERSION 0.1 LANGUAGES ${lang})`                                    + "\n" +
-    ""                                                                                           + "\n" +
-    "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)"                                                      + "\n" +
-    ""                                                                                           + "\n" +
-    "# Common build flags"                                                                       + "\n" +
-    `set(CMAKE_C_FLAGS         \"-Wall -Wextra -std=${langVer}\")`                               + '\n' +
-    ""                                                                                           + "\n" +
-    "# Individual build type flags"                                                              + "\n" +
-    `set(CMAKE_C_FLAGS_RELEASE \"\${CMAKE_${lang}_FLAGS} -O2\")`                                 + "\n" +
-    `set(CMAKE_C_FLAGS_DEBUG   \"\${CMAKE_${lang}_FLAGS} -O0 -g3\")`                             + "\n" +
-    `set(CMAKE_C_FLAGS_TEST    \"\${CMAKE_${lang}_FLAGS} -O0 -g3 -D__test_build__ --coverage\")` + "\n" +
-    ""                                                                                           + "\n" +
-    "# List of components"                                                                       + "\n" +
-    "set(COMPONENTS "                                                                            + "\n" +
-    "  )"                                                                                        + "\n" +
-    ""                                                                                           + "\n" +
-    `add_executable(\${PROJECT_NAME} main.${mainExt})`                                           + "\n" +
-    ""                                                                                           + "\n" +
-    "# Add component subdirectories using loop"                                                  + "\n" +
-    "foreach(COMPONENT ${COMPONENTS})"                                                           + "\n" +
-    "    add_subdirectory(components/${COMPONENT})"                                              + "\n" +
-    "endforeach()"                                                                               + "\n" +
-    ""                                                                                           + "\n" +
-    "# Linking to coverage report tool in case of test build"                                    + "\n" +
-    "if(CMAKE_BUILD_TYPE MATCHES Test)"                                                          + "\n" +
-    "    target_link_libraries(${PROJECT_NAME} gcov)"                                            + "\n" +
-    "endif()"                                                                                    + "\n" +
-    ""                                                                                           + "\n" +
-    "# Printing the size of build after building"                                                + "\n" +
-    "add_custom_command(TARGET ${PROJECT_NAME} "                                                 + "\n" +
-    "    POST_BUILD COMMAND size $<TARGET_FILE:${PROJECT_NAME}>)"                                + "\n" +
-    ""                                                                                           + "\n" +
-    "# End of root CMakeLists.txt"                                                               + "\n" ;
+    "# Start of root CMakeLists.txt"                                                                   + "\n" +
+    ""                                                                                                 + "\n" +
+    "cmake_minimum_required(VERSION 3.10)"                                                             + "\n" +
+    ""                                                                                                 + "\n" +
+    "# Setting the project name based on the root folder name"                                         + "\n" +
+    "get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)"                              + "\n" +
+    `project(\${PROJECT_NAME} VERSION 0.1 LANGUAGES ${lang})`                                          + "\n" +
+    ""                                                                                                 + "\n" +
+    "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)"                                                            + "\n" +
+    ""                                                                                                 + "\n" +
+    "# Common build flags"                                                                             + "\n" +
+    `set(CMAKE_${lang}_FLAGS         \"-Wall -Wextra -std=${langVer}\")`                               + '\n' +
+    ""                                                                                                 + "\n" +
+    "# Individual build type flags"                                                                    + "\n" +
+    `set(CMAKE_${lang}_FLAGS_RELEASE \"\${CMAKE_${lang}_FLAGS} -O2\")`                                 + "\n" +
+    `set(CMAKE_${lang}_FLAGS_DEBUG   \"\${CMAKE_${lang}_FLAGS} -O0 -g3\")`                             + "\n" +
+    `set(CMAKE_${lang}_FLAGS_TEST    \"\${CMAKE_${lang}_FLAGS} -O0 -g3 -D__test_build__ --coverage\")` + "\n" +
+    ""                                                                                                 + "\n" +
+    "# List of components"                                                                             + "\n" +
+    "set(COMPONENTS "                                                                                  + "\n" +
+    "  )"                                                                                              + "\n" +
+    ""                                                                                                 + "\n" +
+    `add_executable(\${PROJECT_NAME} main.${mainExt})`                                                 + "\n" +
+    ""                                                                                                 + "\n" +
+    "# Add component subdirectories using loop"                                                        + "\n" +
+    "foreach(COMPONENT ${COMPONENTS})"                                                                 + "\n" +
+    "    add_subdirectory(components/${COMPONENT})"                                                    + "\n" +
+    "endforeach()"                                                                                     + "\n" +
+    ""                                                                                                 + "\n" +
+    "# Linking to coverage report tool in case of test build"                                          + "\n" +
+    "if(CMAKE_BUILD_TYPE MATCHES Test)"                                                                + "\n" +
+    "    target_link_libraries(${PROJECT_NAME} gcov)"                                                  + "\n" +
+    "endif()"                                                                                          + "\n" +
+    ""                                                                                                 + "\n" +
+    "# Printing the size of build after building"                                                      + "\n" +
+    "add_custom_command(TARGET ${PROJECT_NAME} "                                                       + "\n" +
+    "    POST_BUILD COMMAND size $<TARGET_FILE:${PROJECT_NAME}>)"                                      + "\n" +
+    ""                                                                                                 + "\n" +
+    "# End of root CMakeLists.txt"                                                                     + "\n" ;
 
     return content;
 }
@@ -498,6 +522,7 @@ function TasksJson()
 module.exports = 
 {
     ComponentCmake,
+    ComponentCmakeSimple,
     Header,
     TestHeader,
     TestSource,

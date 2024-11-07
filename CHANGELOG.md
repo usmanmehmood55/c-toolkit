@@ -1,5 +1,39 @@
 # Change Log
 
+## [v2.0.4](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.4)
+
+### Improvements
+
+- The run button does not perform a clean build before running. The decision to
+  clean the build is now left to the user, by using the "clean" button.
+- Added PAT validations to GitHub workflow.  
+
+### Fixes
+
+- The build marker file is now properly created and deleted, previously it was
+  sometimes causing this error message: "`EBUSY: resource busy or locked, unlink
+  <project_folder>\build\z_build_complete`".
+
+## [v2.0.3](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.3)
+
+### Improvements
+
+- When a component is not tested and mocked, its source and header files are
+  placed in the component folder itself instead of being placed in the `src`
+  and `include` subfolders. This simplifies the project structure.
+
+### Fixes
+
+- In root `CMakeLists.txt`, some flags were hardcoded for C language, they now use
+  the appropriate language.
+
+## [v2.0.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.2)
+
+### Fixes
+
+- CMake expected `components` folder, ext created `Components` folder. This
+  has been fixed.
+
 ## [v2.0.0](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.0)
 
 ### Info
