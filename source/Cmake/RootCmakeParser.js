@@ -76,17 +76,17 @@ class RootCMake
     {
         const lines = rootCmake.split('\n').map(line => line.trim());
 
-        this.VersionLine         = findLineStartsWith(lines, "cmake_minimum_required");
-        this.ProjectNameLines    = parseProjectNameLines(lines);
-        this.CompileCommandsLine = findLineStartsWith(lines, "set(CMAKE_EXPORT_COMPILE_COMMANDS");
+        this.VersionLine                = findLineStartsWith(lines, "cmake_minimum_required");
+        this.ProjectNameLines           = parseProjectNameLines(lines);
+        this.CompileCommandsLine        = findLineStartsWith(lines, "set(CMAKE_EXPORT_COMPILE_COMMANDS");
         this.CommonBuildFlagsLine       = findLineStartsWith(lines, "set(CMAKE_C_FLAGS");
         this.IndividualBuildFlagsLines  = parseIndividualBuildFlagsLines(lines);
         this.ComponentListLines         = parseComponentListLines(lines);
         this.ComponentBuildOptionsLines = parseComponentBuildOptionsLines(lines);
         this.AddExecutableLine          = findLineStartsWith(lines, "add_executable(");
-        this.ComponentForeachLines = parseComponentForeachLines(lines);
-        this.GcovLinkLines         = parseGcovLinkLines(lines);
-        this.SizeCommandLines      = parseSizeCommandLines(lines);
+        this.ComponentForeachLines      = parseComponentForeachLines(lines);
+        this.GcovLinkLines              = parseGcovLinkLines(lines);
+        this.SizeCommandLines           = parseSizeCommandLines(lines);
     }
 }
 

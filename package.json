@@ -3,7 +3,7 @@
     "publisher": "UsmanMehmood",
     "displayName": "C C++ Toolkit",
     "description": "Create, compile and run C and C++ applications easily using CMake. The only C/C++ code runner you'll need!",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "icon": "images/icon.png",
     "repository": {
         "type": "git",
@@ -51,33 +51,23 @@
         ]
     },
     "scripts": {
-        "lint": "eslint .",
-        "pretest": "npm run lint",
-        "test": "node ./test/runTest.js"
+        "lint": "eslint ."
     },
     "extensionDependencies": [
         "ms-vscode.cpptools-extension-pack",
         "JacquesLucke.gcov-viewer"
     ],
     "devDependencies": {
-        "@types/glob": "^8.1.0",
-        "@types/mocha": "^10.0.1",
         "@types/node": "20.2.5",
         "@types/vscode": "^1.81.0",
-        "@vscode/test-electron": "^2.3.2",
         "eslint": "^8.57.0",
         "eslint-plugin-jsdoc": "^50.2.2",
-        "glob": "^8.1.0",
-        "mocha": "^10.2.0",
         "typescript": "^5.1.3"
     },
     "bugs": {
         "url": "https://github.com/usmanmehmood55/c-toolkit/issues"
     },
     "homepage": "https://github.com/usmanmehmood55/c-toolkit#readme",
-    "directories": {
-        "test": "test"
-    },
     "author": "Usman Mehmood",
     "tags": [
         "c",

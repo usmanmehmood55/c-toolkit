@@ -106,7 +106,8 @@ function FindProgramPath(program)
 {
     try
     {
-        const path = execSync(`which ${program}`, { encoding: 'utf-8' }).trim();
+        const which_or_where = CheckOs() === OsTypes.WINDOWS ? 'where' : 'which';
+        const path = execSync(`${which_or_where} ${program}`, { encoding: 'utf-8' }).trim();
         return path;
     }
     catch (error)

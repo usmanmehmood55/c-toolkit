@@ -34,7 +34,7 @@ Seven status bar buttons have been implemented to:
 
 ## Project Generation
 
-A new C or C++ project can be created with necessary biolerplate code using
+A new C or C++ project can be created with necessary boilerplate code using
 the `C C++ Toolkit: Create New C Project` or `C C++ Toolkit: Create New C++ Project`
 commands in the command palette. To access the command palette, use
 `ctrl + shift + p`.
@@ -57,7 +57,7 @@ component generation feature.
 
 ## Component Generation
 
-A new component can be created with some biolerplate code by using the
+A new component can be created with some boilerplate code by using the
 `C C++ Toolkit: Create New Component` command in the command palette. It
 would then ask the user to input the component name and give the option
 to make the component "mocked" and "tested".
