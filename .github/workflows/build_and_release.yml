@@ -10,18 +10,20 @@ jobs:
   build_and_release:
     runs-on: ubuntu-latest
     if     : github.event.head_commit.author.email != 'github-actions[bot]@users.noreply.github.com'
+    permissions:
+      contents: write
     outputs: 
       isPrerelease: ${{ steps.set_prerelease.outputs.isPrerelease }}
 
     steps:
       - name: Set up Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
-          node-version: '18.x'
+          node-version: '20'
 
       - name: Install vsce
         run: |
-          npm install -g vsce
+          npm install -g @vscode/vsce
 
       - name: Validating VSCE PAT
         run: |
@@ -33,19 +35,22 @@ jobs:
             echo "VSCE_PUBLISH_PAT is valid."
           fi
 
-      - name: Validating GitHub PAT
+      - name: Validating GITHUB_TOKEN
         run: |
-          echo "Checking PERSONAL_ACCESS_TOKEN..."
-          response=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" https://api.github.com/user)
+          echo "Checking GITHUB_TOKEN..."
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }})
           if [ "$response" -ne 200 ]; then
-            echo "PERSONAL_ACCESS_TOKEN is invalid or expired."
+            echo "GITHUB_TOKEN is unavailable or invalid for this repository."
             exit 1
           else
-            echo "PERSONAL_ACCESS_TOKEN is valid."
+            echo "GITHUB_TOKEN is valid."
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
         with:
           fetch-depth: 2
 
@@ -53,10 +58,10 @@ jobs:
         id  : set_prerelease
         run : |
           if [[ "${{ github.ref }}" == "refs/heads/pre_release" ]]; then
-            echo "::set-output name=isPrerelease::true"
+            echo "isPrerelease=true" >> "$GITHUB_OUTPUT"
             echo "PreRelease"
           else
-            echo "::set-output name=isPrerelease::false"
+            echo "isPrerelease=false" >> "$GITHUB_OUTPUT"
             echo "Release"
           fi
 
@@ -70,9 +75,9 @@ jobs:
           echo "Current Version: $CURRENT_VERSION"
 
           if [[ "$PREVIOUS_VERSION" != "$CURRENT_VERSION" ]]; then
-            echo "::set-output name=version_bumped::true"
+            echo "version_bumped=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::set-output name=version_bumped::false"
+            echo "version_bumped=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Package Extension
@@ -83,39 +88,30 @@ jobs:
         if  : steps.check_version.outputs.version_bumped == 'true'
         run : |
           if [[ "${{ steps.set_prerelease.outputs.isPrerelease }}" == "true" ]]; then
-            vsce publish -p ${{ secrets.VSCE_PUBLISH_PAT }} --pre-release
+            vsce publish --pre-release
           else
-            vsce publish -p ${{ secrets.VSCE_PUBLISH_PAT }}
+            vsce publish
           fi
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PUBLISH_PAT }}
 
       - name: Get package information
         if  : steps.check_version.outputs.version_bumped == 'true'
         id  : package_info
         run : |
-          echo "::set-output name=version::$(node -p "require('./package.json').version")"
-          echo "::set-output name=name::$(node -p "require('./package.json').name")"
-          echo "::set-output name=publisher::$(node -p "require('./package.json').publisher")"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "name=$(node -p "require('./package.json').name")" >> "$GITHUB_OUTPUT"
+          echo "publisher=$(node -p "require('./package.json').publisher")" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         if  : steps.check_version.outputs.version_bumped == 'true'
         id  : create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         with: 
           tag_name    : ${{ steps.package_info.outputs.version }}
-          release_name: Release ${{ steps.package_info.outputs.version }}
+          name        : Release ${{ steps.package_info.outputs.version }}
           draft       : false
-          prerelease  : ${{ steps.set_prerelease.outputs.isPrerelease }}
+          prerelease  : ${{ steps.set_prerelease.outputs.isPrerelease == 'true' }}
+          files       : ./${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.vsix
         env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-
-      - name: Upload Release Asset
-        if  : steps.check_version.outputs.version_bumped == 'true'
-        id  : upload-release-asset
-        uses: actions/upload-release-asset@v1
-        with: 
-          upload_url        : ${{ steps.create_release.outputs.upload_url }}
-          asset_path        : ./${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.vsix
-          asset_name        : ${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.vsix
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

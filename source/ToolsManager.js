@@ -1,7 +1,8 @@
 const vscode = require('vscode');
 const os     = require('os');
+const fs     = require('fs');
+const path   = require('path');
 const Logger = require('./Logger');
-const { execSync } = require('child_process');
 const { spawn, spawnSync } = require('child_process');
 const { OsTypes, CheckOs, FormatList, WrapSpacedComponents } = require('./CommonUtils');
 
@@ -49,7 +50,172 @@ const PackageManagers =
 };
 
 /**
- * Checks for the presence of a program by using the --version thingy
+ * Finds a tool on PATH using the platform-native lookup command.
+ *
+ * @param {string} toolName Name of the tool to search for
+ *
+ * @returns {string|undefined} absolute path of the resolved tool
+ */
+function findToolInPath(toolName)
+{
+    const lookupCommand = CheckOs() === OsTypes.WINDOWS ? 'where' : 'which';
+    const lookup = spawnSync(lookupCommand, [toolName], { encoding: 'utf-8' });
+
+    if (lookup.status !== 0 || !lookup.stdout)
+    {
+        return undefined;
+    }
+
+    return lookup.stdout
+        .split(/\r?\n/)
+        .map(eachLine => eachLine.trim())
+        .find(eachLine => eachLine.length > 0);
+}
+
+/**
+ * Returns the default Scoop installation locations that may contain a tool.
+ *
+ * @param {string} toolName Name of the tool to search for
+ *
+ * @returns {string[]} candidate absolute paths
+ */
+function getScoopToolCandidates(toolName)
+{
+    const scoopRoot = path.join(os.homedir(), 'scoop');
+
+    /** @type {string[]} */
+    const candidates =
+    [
+        path.join(scoopRoot, 'shims', `${toolName}.exe`),
+        path.join(scoopRoot, 'shims', `${toolName}.cmd`),
+        path.join(scoopRoot, 'shims', toolName),
+        path.join(scoopRoot, 'apps', toolName, 'current', `${toolName}.exe`),
+        path.join(scoopRoot, 'apps', toolName, 'current', 'bin', `${toolName}.exe`),
+        path.join(scoopRoot, 'apps', toolName, 'current', 'usr', 'bin', `${toolName}.exe`),
+    ];
+
+    return candidates;
+}
+
+/**
+ * Returns Scoop GCC package locations that may contain GCC-owned tools.
+ *
+ * @param {string} toolName Name of the tool to search for
+ *
+ * @returns {string[]} candidate absolute paths
+ */
+function getGccToolCandidates(toolName)
+{
+    const gccRoot = path.join(os.homedir(), 'scoop', 'apps', 'gcc', 'current');
+
+    /** @type {string[]} */
+    const candidates =
+    [
+        path.join(gccRoot, 'bin', `${toolName}.exe`),
+        path.join(gccRoot, 'libexec', 'gcc', 'x86_64-w64-mingw32', `${toolName}.exe`),
+    ];
+
+    return candidates;
+}
+
+/**
+ * Returns the preferred standalone GNU Make path on Windows when available.
+ *
+ * @returns {string|undefined} absolute path to GNU Make
+ */
+function getPreferredWindowsMakePath()
+{
+    const standaloneMakePath = path.join(os.homedir(), 'scoop', 'apps', 'make', 'current', 'bin', 'make.exe');
+    return fs.existsSync(standaloneMakePath) ? standaloneMakePath : undefined;
+}
+
+/**
+ * Returns true when a Scoop shim delegates to BusyBox.
+ *
+ * @param {string} toolName Name of the tool to inspect
+ *
+ * @returns {boolean} true if the shim points at BusyBox
+ */
+function isBusyboxBackedShim(toolName)
+{
+    const shimPath = path.join(os.homedir(), 'scoop', 'shims', `${toolName}.shim`);
+    if (!fs.existsSync(shimPath))
+    {
+        return false;
+    }
+
+    const shimContents = fs.readFileSync(shimPath, 'utf-8');
+    return shimContents.toLowerCase().includes('busybox.exe');
+}
+
+/**
+ * Resolves the absolute executable path for a tool.
+ *
+ * @param {string} toolName Name of the tool to search for
+ *
+ * @returns {string|undefined} absolute path of the resolved tool
+ */
+function resolveToolPath(toolName)
+{
+    const toolInPath = findToolInPath(toolName);
+    if (CheckOs() === OsTypes.WINDOWS && toolName === BuildTools.MAKE && toolInPath && isBusyboxBackedShim(toolName))
+    {
+        const preferredMakePath = getPreferredWindowsMakePath();
+        if (preferredMakePath)
+        {
+            return preferredMakePath;
+        }
+    }
+
+    if (toolInPath)
+    {
+        return toolInPath;
+    }
+
+    if (CheckOs() !== OsTypes.WINDOWS)
+    {
+        return undefined;
+    }
+
+    const scoopCandidates = getScoopToolCandidates(toolName);
+    const scoopCandidate = scoopCandidates.find(candidate => fs.existsSync(candidate));
+    if (scoopCandidate)
+    {
+        return scoopCandidate;
+    }
+
+    const gccOwnedToolCandidate = getGccToolCandidates(toolName).find(candidate => fs.existsSync(candidate));
+    if (gccOwnedToolCandidate)
+    {
+        return gccOwnedToolCandidate;
+    }
+
+    return undefined;
+}
+
+/**
+ * Checks whether a resolved tool can actually be launched.
+ *
+ * @param {string} toolName  Name of the tool to search for
+ * @param {string} toolPath  Resolved absolute path of the tool
+ *
+ * @returns {boolean} true if the tool can be executed
+ */
+function canExecuteTool(toolName, toolPath)
+{
+    if (toolName === BuildTools.SCOOP)
+    {
+        return fs.existsSync(toolPath);
+    }
+
+    const args = toolName === BuildTools.BBOX ? [] : ['--version'];
+    const process = spawnSync(toolPath, args, { stdio: 'ignore' });
+
+    return process.error === undefined && process.status === 0;
+}
+
+/**
+ * Checks for the presence of a program using a resolved absolute path.
  * 
  * @param {string} toolName Name of the tool to search for
  * 
@@ -57,21 +223,19 @@ const PackageManagers =
  */
 async function isToolInPath(toolName)
 {
-    toolName = toolName === BuildTools.SCOOP ? `${WrapSpacedComponents(os.homedir())}\\scoop\\shims\\scoop` : toolName;
-
-    // Busybox does not support '--version' argument so this case ahs been added for it
-    const versionCommand = toolName === BuildTools.BBOX ? toolName : `${toolName} --version`;
-
-    try
-    {
-        execSync(versionCommand, { stdio: 'ignore' });
-        Logger.Info(`${toolName} found.`);
-        return true;
-    }
-    catch (error)
+    const resolvedToolPath = resolveToolPath(toolName);
+    if (!resolvedToolPath)
     {
         return false;
     }
+
+    if (canExecuteTool(toolName, resolvedToolPath))
+    {
+        Logger.Info(`${resolvedToolPath} found.`);
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -450,5 +614,6 @@ async function SearchForTools()
 module.exports = 
 {
     SearchForToolsCommand,
-    SearchForTools
+    SearchForTools,
+    resolveToolPath
 };

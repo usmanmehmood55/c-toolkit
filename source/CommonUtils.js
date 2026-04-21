@@ -1,4 +1,5 @@
 const os     = require('os');
+const fs     = require('fs');
 const vscode = require('vscode');
 const path   = require('path');
 const { execSync } = require('child_process');
@@ -96,6 +97,32 @@ function SanitizeFileName(name)
 }
 
 /**
+ * Returns Windows Scoop package locations that may contain the requested tool.
+ *
+ * @param {string} program The program to find.
+ *
+ * @returns {string[]} candidate absolute paths
+ */
+function GetWindowsToolCandidates(program)
+{
+    const scoopRoot = path.join(os.homedir(), 'scoop');
+
+    /** @type {string[]} */
+    const candidates =
+    [
+        path.join(scoopRoot, 'shims', `${program}.exe`),
+        path.join(scoopRoot, 'shims', `${program}.cmd`),
+        path.join(scoopRoot, 'apps', program, 'current', `${program}.exe`),
+        path.join(scoopRoot, 'apps', program, 'current', 'bin', `${program}.exe`),
+        path.join(scoopRoot, 'apps', program, 'current', 'usr', 'bin', `${program}.exe`),
+        path.join(scoopRoot, 'apps', 'gcc', 'current', 'bin', `${program}.exe`),
+        path.join(scoopRoot, 'apps', 'gcc', 'current', 'libexec', 'gcc', 'x86_64-w64-mingw32', `${program}.exe`),
+    ];
+
+    return candidates;
+}
+
+/**
  * Finds the path of the given program using the 'which' command.
  * 
  * @param {string} program The program to find.
@@ -112,7 +139,12 @@ function FindProgramPath(program)
     }
     catch (error)
     {
-        return undefined;
+        if (CheckOs() !== OsTypes.WINDOWS)
+        {
+            return undefined;
+        }
+
+        return GetWindowsToolCandidates(program).find(eachCandidate => fs.existsSync(eachCandidate));
     }
 }
 
