@@ -17,7 +17,7 @@ let buildState = new BuildState(BuildTypes.DEBUG,  BuildSubsystems.NINJA);
  */
 function activate(context)
 {
-    Logger.Info("C C++ Toolkit extension activated");
+    Logger.Info("C C++ Toolkit extension activating");
 
     const buttons = 
     [
@@ -47,6 +47,8 @@ function activate(context)
             item.color = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ? button.darkIconColor : undefined;
         }
     });
+
+    Logger.Info("C C++ Toolkit extension activated");
 }
 
 /**
@@ -102,7 +104,7 @@ function createStatusBarItem(button, context)
         /** @returns {Promise<void>} */
         "Test"      : () => buttonActions.invokeTests(buildState),
         /** @returns {Promise<void>} */
-        "Debug Test": () => buttonActions.invokeDebug(buildState),
+        "Debug Test": () => buttonActions.invokeDebugTest(buildState),
     };
 
     const buttonAction = buttonActionsMap[button.name];

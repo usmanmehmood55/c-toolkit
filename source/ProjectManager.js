@@ -57,10 +57,12 @@ function IsProjectCpp()
             if (languageLine.includes('CXX') || languageLine.includes('C++'))
             {
                 isCpp = true;
+                Logger.Info('C++ project found in CMakeLists.txt');
             }
             else if (languageLine.includes('C'))
             {
                 isCpp = false;
+                Logger.Info('C project found in CMakeLists.txt');
             }
             else
             {

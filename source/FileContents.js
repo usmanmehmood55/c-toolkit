@@ -23,6 +23,18 @@ const intelliSenseMode =
 };
 
 /**
+ * Escapes a string so it can be safely embedded in JSON output.
+ *
+ * @param {string|undefined} value Value to escape
+ *
+ * @returns {string} JSON-safe string content
+ */
+function EscapeJsonString(value)
+{
+    return JSON.stringify(value || '').slice(1, -1);
+}
+
+/**
  * Creates a CMakeLists file for a component with references to its header, source, mock and test files.
  * 
  * @param {string} componentName Name of the component.
@@ -384,7 +396,7 @@ function ProjectCmake(isCpp)
  */
 function CppPropertiesJson()
 {
-    const gccPath = FindProgramPath('gcc');
+    const compilerPath = EscapeJsonString(FindProgramPath('g++') || FindProgramPath('gcc'));
 
     let content =
     
@@ -394,7 +406,7 @@ function CppPropertiesJson()
     "        {"                                                                     + "\n" +
     "            \"name\"            : \"c-toolkit config\","                       + "\n" +
     "            \"includePath\"     : [ \"${workspaceFolder}/**\" ],"              + "\n" +
-    `            \"compilerPath\"    : \"${gccPath}\",`                             + "\n" +
+    `            \"compilerPath\"    : \"${compilerPath}\",`                        + "\n" +
     "            \"cStandard\"       : \"c11\","                                    + "\n" +
     "            \"cppStandard\"     : \"c++11\","                                  + "\n" +
     `            \"intelliSenseMode\": \"${intelliSenseMode[CheckOs()]}\",`         + "\n" +

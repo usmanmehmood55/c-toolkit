@@ -1,5 +1,31 @@
 # Change Log
 
+## [v2.1.1](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.1.1)
+
+### Improvements
+
+- Tool discovery is now more resilient across Windows, Linux and MacOS by
+  resolving executables to absolute paths before validating them.
+- On Windows, GNU Make is now preferred over a BusyBox-backed `make` shim when
+  both are installed via Scoop.
+- Build, run and test tasks now execute with a tool-aware environment so
+  compiler-adjacent tools like `size` can be found even if VS Code inherited an
+  incomplete `PATH`.
+- CMake configure now receives resolved compiler paths, allowing projects to
+  build even when GCC/G++ are not directly discoverable from the VS Code task
+  environment.
+- Generated IntelliSense configuration now resolves compiler paths more
+  reliably on Windows, including GCC-owned tools installed via Scoop.
+
+### Fixes
+
+- `Debug Test` no longer launches the normal debug flow; it now builds and
+  debugs the test configuration explicitly.
+- Removed the build marker file polling flow and replaced it with task-based
+  process completion to avoid race conditions during build and test execution.
+- Fixed JSON escaping for compiler paths in generated `c_cpp_properties.json`
+  files on Windows.
+
 ## [v2.0.4](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.0.4)
 
 ### Improvements
