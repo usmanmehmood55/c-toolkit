@@ -1,5 +1,11 @@
 # Change Log
 
+## [v2.1.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.1.2)
+
+### Improvements
+
+- Logo and banner image updated.
+
 ## [v2.1.1](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.1.1)
 
 ### Improvements
