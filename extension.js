@@ -5,12 +5,12 @@ const ProjectManager         = require('./source/ProjectManager');
 const ToolsManager           = require('./source/ToolsManager');
 const Logger                 = require('./source/Logger');
 const RefreshConfigsCommand  = require('./source/ConfigManager');
+const { OutputModes }        = require('./source/BuildReporter');
 
 const BuildState      = buttonActions.BuildState;
 const BuildTypes      = buttonActions.BuildTypes;
-const BuildSubsystems = buttonActions.BuildSubsystems;
 
-let buildState = new BuildState(BuildTypes.DEBUG,  BuildSubsystems.NINJA);
+let buildState = new BuildState(BuildTypes.DEBUG);
 
 /**
  * @param {vscode.ExtensionContext} context The extension context provided by VSCode.
@@ -37,6 +37,7 @@ function activate(context)
     ProjectManager.CreateCppProjectCommand(context);
     RefreshConfigsCommand(context);
     ToolsManager.SearchForToolsCommand(context);
+    SelectOutputModeCommand(context);
     ToolsManager.SearchForTools();
 
     vscode.window.onDidChangeActiveColorTheme(e => // eslint-disable-line no-unused-vars
@@ -44,11 +45,41 @@ function activate(context)
         for (let item of disposables)
         {
             let button = buttons.find(b => b.command === item.command);
-            item.color = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ? button.darkIconColor : undefined;
+            if (button)
+            {
+                item.color = vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark ? button.darkIconColor : undefined;
+            }
         }
     });
 
     Logger.Info("C C++ Toolkit extension activated");
+}
+
+/**
+ * Registers the command that changes build-output detail.
+ * @param {vscode.ExtensionContext} context Extension context.
+ */
+function SelectOutputModeCommand(context)
+{
+    const command = vscode.commands.registerCommand('extension.selectOutputMode', async () =>
+    {
+        const labels =
+        {
+            [OutputModes.GUIDED]  : 'Guided — progress and concise stages',
+            [OutputModes.COMMANDS]: 'Commands — stages and reproducible commands',
+            [OutputModes.VERBOSE] : 'Verbose — complete build output',
+        };
+        const selection = await vscode.window.showQuickPick(Object.entries(labels).map(([value, label]) => ({ label, value })),
+            { placeHolder: 'Choose how build activity is displayed' });
+
+        if (selection)
+        {
+            await vscode.workspace.getConfiguration('c-cpp-toolkit').update(
+                'outputMode', selection.value, vscode.ConfigurationTarget.Global);
+            vscode.window.showInformationMessage(`C C++ Toolkit output mode: ${selection.label}`);
+        }
+    });
+    context.subscriptions.push(command);
 }
 
 /**
@@ -89,22 +120,23 @@ function createStatusBarItem(button, context)
     item.command = button.command;
     item.show();
 
+    /** @type {Record<string, () => Promise<unknown>>} */
     const buttonActionsMap =
     {
-        /** @returns {Promise<void>}  */
+        /** @returns {Promise<unknown>} Build selection completion. */
         "Build Type": () => buttonActions.selectBuild(item, buildState).then((selectedBuild) => { buildState = selectedBuild; }),   // eslint-disable-line brace-style
-        /** @returns {Promise<void>} */
+        /** @returns {Promise<unknown>} Clean completion. */
         "Clean"     : () => buttonActions.cleanBuild(false),
-        /** @returns {Promise<void>} */
+        /** @returns {Promise<unknown>} Build completion. */
         "Build"     : () => buttonActions.invokeBuild(buildState),
-        /** @returns {Promise<void>} */
+        /** @returns {Promise<unknown>} Run completion. */
         "Run"       : () => buttonActions.invokeRun(buildState, false),
-        /** @returns {Promise<void>} */
+        /** @returns {Promise<unknown>} Debug completion. */
         "Debug"     : () => buttonActions.invokeDebug(buildState),
-        /** @returns {Promise<void>} */
-        "Test"      : () => buttonActions.invokeTests(buildState),
-        /** @returns {Promise<void>} */
-        "Debug Test": () => buttonActions.invokeDebugTest(buildState),
+        /** @returns {Promise<unknown>} Test completion. */
+        "Test"      : () => buttonActions.invokeTests(),
+        /** @returns {Promise<unknown>} Test debugging completion. */
+        "Debug Test": () => buttonActions.invokeDebugTest(),
     };
 
     const buttonAction = buttonActionsMap[button.name];

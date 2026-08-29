@@ -41,8 +41,32 @@
             {
                 "command": "extension.refreshConfigs",
                 "title": "C C++ Toolkit: Refresh Configurations"
+            },
+            {
+                "command": "extension.selectOutputMode",
+                "title": "C C++ Toolkit: Select Output Mode"
             }
         ],
+        "configuration": {
+            "title": "C C++ Toolkit",
+            "properties": {
+                "c-cpp-toolkit.outputMode": {
+                    "type": "string",
+                    "enum": [
+                        "guided",
+                        "commands",
+                        "verbose"
+                    ],
+                    "enumDescriptions": [
+                        "Show friendly progress notifications; keep commands in Build Output.",
+                        "Open Build Output automatically and show commands with concise stages.",
+                        "Open Build Output automatically and include complete process output."
+                    ],
+                    "default": "guided",
+                    "description": "Controls how much build detail is shown."
+                }
+            }
+        },
         "snippets": [
             {
                 "language": "c",
@@ -55,7 +79,7 @@
     },
     "extensionDependencies": [
         "ms-vscode.cpptools-extension-pack",
-        "JacquesLucke.gcov-viewer"
+        "vadimcn.vscode-lldb"
     ],
     "devDependencies": {
         "@types/node": "20.2.5",

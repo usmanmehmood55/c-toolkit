@@ -1,36 +1,33 @@
 const vscode = require('vscode');
 const fs     = require('fs');
 const path   = require('path');
+const { spawn } = require('child_process');
 const { OsTypes, CheckOs, GetWorkspacePath } = require('./CommonUtils');
 const { IsProjectCpp } = require('./ProjectManager');
-const { resolveToolPath } = require('./ToolsManager');
+const { resolveToolPath, resolveSiblingToolPath } = require('./ToolsManager');
+const { BuildReporter } = require('./BuildReporter');
 
 const BUILD_DIR_NAME      = 'build';
 const CMAKE_LISTS_NAME    = 'CMakeLists.txt';
-const BUILD_TASK_NAME     = "CMake Build";
 const RUN_TASK_NAME       = "CMake Run";
 const TEST_TASK_NAME      = "CMake Test";
 
 /** @type {string} */
-let BUILD_DIR_PATH    = undefined;
+let BUILD_DIR_PATH    = '';
 /** @type {string} */
-let CMAKE_LISTS_PATH  = undefined;
+let CMAKE_LISTS_PATH  = '';
 /** @type {string} */
-let EXECUTABLE_NAME   = undefined;
+let EXECUTABLE_NAME   = '';
 /** @type {string} */
-let EXECUTABLE_PATH   = undefined;
+let EXECUTABLE_PATH   = '';
+/** @type {vscode.Terminal|undefined} */
+let RUN_TERMINAL      = undefined;
 
 const BuildTypes = 
 {
     DEBUG   : 'Debug',
     TEST    : 'Test',
     RELEASE : 'Release',
-};
-
-const BuildSubsystems = 
-{
-    NINJA : 'ninja',
-    MAKE  : 'make',
 };
 
 /**
@@ -40,12 +37,10 @@ class BuildState
 {
     /**
      * @param {string} type 
-     * @param {string} subSystem
      */
-    constructor(type, subSystem) 
+    constructor(type)
     {
-        this.type      = type;
-        this.subSystem = subSystem;
+        this.type = type;
     }
 };
 
@@ -64,7 +59,7 @@ function syncPaths()
     if (!workspacePath)
     {
         vscode.window.showErrorMessage("No folder open in the workspace");
-        return undefined;
+        return false;
     }
 
     BUILD_DIR_PATH      = path.join(workspacePath, BUILD_DIR_NAME);
@@ -158,37 +153,6 @@ async function selectBuild(button, buildState)
 }
 
 /**
- * Selects the build type between Release and Debug, and asks to perform a clean
- * build if teh type changes.
- * 
- * @param   {vscode.StatusBarItem} button
- * @param   {BuildState}           buildState 
- * @returns {Promise<BuildState>}  newBuildSubsystem
- */
-async function selectBuildSubsystem(button, buildState)
-{
-    /** @type {string?} */
-    let newBuildSubsystem = await vscode.window.showQuickPick([BuildSubsystems.NINJA, BuildSubsystems.MAKE]);
-
-    // if no selection or the same selection, do not do anything
-    if ((!newBuildSubsystem) || (newBuildSubsystem === buildState.subSystem))
-    {
-        return buildState;
-    }
-
-    // otherwise set buildType to newBuildType
-    buildState.subSystem = newBuildSubsystem;
-
-    // set the button text to the new selection
-    button.text = `$(cpu) ${buildState.subSystem}`;
-
-    // Prompt the user to make a clean build after build type is changed
-    await askNewBuild(buildState, 'Build subsystem has changed. Do you want to make a clean build?');
-
-    return buildState;
-}
-
-/**
  * Invokes CMake to build, given the build type.
  * 
  * @param {BuildState} buildState
@@ -196,20 +160,20 @@ async function selectBuildSubsystem(button, buildState)
  */
 async function invokeBuild(buildState)
 {
-    if (!syncPaths()) return;
+    if (!syncPaths()) return false;
 
     const workspaceRoot = GetWorkspacePath();
 
     if (!workspaceRoot)
     {
         vscode.window.showInformationMessage("No workspace opened.");
-        return;
+        return false;
     }
 
     if (!fs.existsSync(CMAKE_LISTS_PATH))
     {
         vscode.window.showInformationMessage("CMakeLists.txt not found.");
-        return;
+        return false;
     }
 
     const compilerArgs = getCompilerArgs();
@@ -227,17 +191,56 @@ async function invokeBuild(buildState)
     ];
     const buildArgs = ['--build', BUILD_DIR_NAME];
 
-    try
+    BuildReporter.Start(`Build · ${buildState.type}`);
+    BuildReporter.Pass('CMakeLists.txt found');
+
+    let failedStage = '';
+    let failureMessage = '';
+    const didBuild = await vscode.window.withProgress({
+        location   : vscode.ProgressLocation.Notification,
+        title      : `C C++ Toolkit · ${buildState.type}`,
+        cancellable: false,
+    }, async progress =>
     {
-        await executeProcessTask(BUILD_TASK_NAME, 'cmake', configureArgs, workspaceRoot);
-        await executeProcessTask(BUILD_TASK_NAME, 'cmake', buildArgs, workspaceRoot);
+        let activeStage = 'CMake generation';
+        try
+        {
+            BuildReporter.Active('Generating with CMake');
+            progress.report({ message: 'Generating with CMake…' });
+            await executeBuildProcess('cmake', configureArgs, workspaceRoot);
+            BuildReporter.Pass('Generated with CMake');
+
+            activeStage = 'Ninja compilation';
+            BuildReporter.Active('Compiling with Ninja');
+            progress.report({ message: 'Compiling with Ninja…' });
+            await executeBuildProcess('cmake', buildArgs, workspaceRoot);
+            BuildReporter.Pass('Compiled with Ninja');
+            return true;
+        }
+        catch (error)
+        {
+            failureMessage = error instanceof Error ? error.message : String(error);
+            failedStage = activeStage;
+            BuildReporter.Fail(`${activeStage} failed`);
+            return false;
+        }
+    });
+
+    if (didBuild)
+    {
+        vscode.window.setStatusBarMessage(`$(check) ${buildState.type} build complete`, 5000);
+        vscode.window.showInformationMessage(`${buildState.type} build completed successfully.`);
         return true;
     }
-    catch (error)
+
+    vscode.window.showErrorMessage(`${failedStage} failed: ${failureMessage}`, 'Show Details').then(action =>
     {
-        vscode.window.showErrorMessage(`Build failed: ${error.message}`);
-        return false;
-    }
+        if (action === 'Show Details')
+        {
+            BuildReporter.Show();
+        }
+    });
+    return false;
 }
 
 /**
@@ -254,15 +257,9 @@ function getCompilerArgs()
         return undefined;
     }
 
-    const cCompilerPath = resolveToolPath('gcc');
-    if (!cCompilerPath)
-    {
-        vscode.window.showErrorMessage('Unable to resolve gcc for the current environment.');
-        return undefined;
-    }
-
     /** @type {string[]} */
-    const compilerArgs = ['-D', `CMAKE_C_COMPILER=${cCompilerPath}`];
+    const compilerArgs = [];
+    let activeCompilerPath;
 
     if (isCpp)
     {
@@ -274,6 +271,25 @@ function getCompilerArgs()
         }
 
         compilerArgs.push('-D', `CMAKE_CXX_COMPILER=${cppCompilerPath}`);
+        activeCompilerPath = cppCompilerPath;
+    }
+    else
+    {
+        const cCompilerPath = resolveToolPath('gcc');
+        if (!cCompilerPath)
+        {
+            vscode.window.showErrorMessage('Unable to resolve gcc for the current environment.');
+            return undefined;
+        }
+
+        compilerArgs.push('-D', `CMAKE_C_COMPILER=${cCompilerPath}`);
+        activeCompilerPath = cCompilerPath;
+    }
+
+    const sizePath = resolveSiblingToolPath('size', activeCompilerPath);
+    if (sizePath)
+    {
+        compilerArgs.push('-D', `CMAKE_SIZE=${sizePath}`);
     }
 
     return compilerArgs;
@@ -289,7 +305,7 @@ function getCompilerArgs()
  */
 async function invokeRun(buildState, shouldClean, taskName = RUN_TASK_NAME) 
 {
-    if (!syncPaths()) return;
+    if (!syncPaths()) return false;
 
     if (shouldClean)
     {
@@ -306,12 +322,19 @@ async function invokeRun(buildState, shouldClean, taskName = RUN_TASK_NAME)
     {
         try
         {
-            await executeProcessTask(taskName, EXECUTABLE_PATH, [], BUILD_DIR_PATH);
-            return true;
+            BuildReporter.Active(taskName === TEST_TASK_NAME ? 'Running tests' : 'Starting application');
+            const shouldWait = taskName === TEST_TASK_NAME;
+            const didRun = await launchExecutableTerminal(taskName, EXECUTABLE_PATH, BUILD_DIR_PATH, shouldWait);
+            if (didRun)
+            {
+                BuildReporter.Pass(taskName === TEST_TASK_NAME ? 'Tests completed' : 'Application started');
+            }
+            return didRun;
         }
         catch (error)
         {
-            vscode.window.showErrorMessage(`Execution failed: ${error.message}`);
+            const message = error instanceof Error ? error.message : String(error);
+            vscode.window.showErrorMessage(`Execution failed: ${message}`);
             return false;
         }
     }
@@ -321,112 +344,159 @@ async function invokeRun(buildState, shouldClean, taskName = RUN_TASK_NAME)
 }
 
 /**
- * Runs a process as a VS Code task and resolves when it exits.
+ * Runs a build process without exposing an implementation terminal.
  *
- * @param {string}   taskName Task label shown in the task UI.
  * @param {string}   command  Executable name or absolute path.
  * @param {string[]} args     Process arguments.
  * @param {string}   cwd      Working directory.
  * @returns {Promise<void>}
  */
-async function executeProcessTask(taskName, command, args, cwd)
+async function executeBuildProcess(command, args, cwd)
 {
-    const workspaceFolder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
-    if (!workspaceFolder)
-    {
-        throw new Error('No folder open in the workspace');
-    }
-
-    const execution = new vscode.ProcessExecution(command, args, { cwd, env: getToolRuntimeEnvironment() });
-    const task = new vscode.Task({ type: 'c-toolkit' }, workspaceFolder, taskName, 'c-toolkit', execution);
-    task.presentationOptions =
-    {
-        reveal: vscode.TaskRevealKind.Always,
-        panel : vscode.TaskPanelKind.Dedicated,
-        clear : false,
-        focus : false,
-    };
+    const executable = resolveToolPath(command) || command;
+    BuildReporter.Command(executable, args);
 
     return new Promise((resolve, reject) =>
     {
-        /** @type {vscode.TaskExecution | undefined} */
-        let runningTask = undefined;
-        /** @type {{exitCode: number|undefined}|undefined} */
-        let pendingTaskResult = undefined;
-        const disposable = vscode.tasks.onDidEndTaskProcess(event =>
+        const process = spawn(executable, args, { cwd, env: getToolRuntimeEnvironment() });
+        let capturedOutput = '';
+
+        process.stdout.on('data', data =>
         {
-            if (event.execution.task.name !== task.name || event.execution.task.source !== task.source)
-            {
-                return;
-            }
-
-            if (runningTask === undefined)
-            {
-                pendingTaskResult = { exitCode: event.exitCode };
-                return;
-            }
-
-            disposable.dispose();
-
-            if (event.exitCode === 0)
-            {
-                resolve();
-            }
-            else
-            {
-                reject(new Error(`${taskName} exited with code ${event.exitCode}`));
-            }
+            const output = data.toString();
+            capturedOutput += output;
+            BuildReporter.Output(output);
         });
 
-        vscode.tasks.executeTask(task).then(executionResult =>
+        process.stderr.on('data', data =>
         {
-            runningTask = executionResult;
-            if (pendingTaskResult !== undefined)
-            {
-                disposable.dispose();
+            const output = data.toString();
+            capturedOutput += output;
+            BuildReporter.Output(output);
+        });
 
-                if (pendingTaskResult.exitCode === 0)
-                {
-                    resolve();
-                }
-                else
-                {
-                    reject(new Error(`${taskName} exited with code ${pendingTaskResult.exitCode}`));
-                }
-            }
-        }, error =>
+        process.on('error', error =>
         {
-            disposable.dispose();
             reject(error);
+        });
+
+        process.on('close', code =>
+        {
+            if (code === 0)
+            {
+                resolve();
+                return;
+            }
+
+            BuildReporter.FailureOutput(capturedOutput);
+            reject(new Error(`${path.basename(executable)} exited with code ${code}`));
         });
     });
 }
 
 /**
+ * Launches the compiled program in a clean, interactive terminal.
+ *
+ * @param {string}  name        Terminal name.
+ * @param {string}  executable  Executable path.
+ * @param {string}  cwd         Working directory.
+ * @param {boolean} waitForExit Whether completion must wait for the terminal to close.
+ * @returns {Promise<boolean>} Whether the program launched or exited successfully.
+ */
+async function launchExecutableTerminal(name, executable, cwd, waitForExit)
+{
+    if (!waitForExit)
+    {
+        if (RUN_TERMINAL)
+        {
+            RUN_TERMINAL.dispose();
+        }
+
+        RUN_TERMINAL = vscode.window.createTerminal({
+            name: 'C C++ Toolkit: Run',
+            cwd,
+            env : getToolRuntimeEnvironment(),
+        });
+        RUN_TERMINAL.show(false);
+        RUN_TERMINAL.sendText(formatTerminalCommand(executable));
+        return true;
+    }
+
+    const terminal = vscode.window.createTerminal({ name, shellPath: executable, cwd });
+    terminal.show(false);
+    return new Promise(resolve =>
+    {
+        const disposable = vscode.window.onDidCloseTerminal(closedTerminal =>
+        {
+            if (closedTerminal === terminal)
+            {
+                disposable.dispose();
+                resolve(terminal.exitStatus !== undefined && terminal.exitStatus.code === 0);
+            }
+        });
+    });
+}
+
+/**
+ * Formats an executable path for the user's platform shell.
+ *
+ * @param {string} executable Executable path.
+ * @returns {string} Shell command.
+ */
+function formatTerminalCommand(executable)
+{
+    if (CheckOs() === OsTypes.WINDOWS)
+    {
+        return `& "${executable.replace(/"/g, '`"')}"`;
+    }
+
+    return `'${executable.replace(/'/g, `'\\''`)}'`;
+}
+
+/**
  * Builds an environment for task execution that includes resolved tool directories.
  *
- * @returns {NodeJS.ProcessEnv} environment for tool execution
+ * @returns {{[key: string]: string}} environment for tool execution
  */
 function getToolRuntimeEnvironment()
 {
-    /** @type {NodeJS.ProcessEnv} */
-    const env = { ...process.env };
+    /** @type {{[key: string]: string}} */
+    const env = {};
+    for (const [key, value] of Object.entries(process.env))
+    {
+        if (value !== undefined)
+        {
+            env[key] = value;
+        }
+    }
     const pathKey = Object.keys(env).find(key => key.toLowerCase() === 'path') || 'Path';
     const existingPath = env[pathKey] || '';
 
-    /** @type {string[]} */
-    const toolDirectories =
+    const isCpp = IsProjectCpp();
+    const activeCompilerPath = resolveToolPath(isCpp ? 'g++' : 'gcc');
+    const matchingSizePath = resolveSiblingToolPath('size', activeCompilerPath);
+
+    const toolPaths =
     [
+        matchingSizePath,
+        activeCompilerPath,
         resolveToolPath('gcc'),
         resolveToolPath('g++'),
         resolveToolPath('size'),
         resolveToolPath('gdb'),
         resolveToolPath('cmake'),
         resolveToolPath('ninja'),
-        resolveToolPath('make'),
-    ]
-        .filter(eachPath => typeof eachPath === 'string')
-        .map(eachPath => path.dirname(eachPath));
+    ];
+
+    /** @type {string[]} */
+    const toolDirectories = [];
+    for (const eachPath of toolPaths)
+    {
+        if (eachPath !== undefined)
+        {
+            toolDirectories.push(path.dirname(eachPath));
+        }
+    }
 
     const uniqueDirectories = [...new Set(toolDirectories)];
     env[pathKey] = [...uniqueDirectories, existingPath].filter(Boolean).join(path.delimiter);
@@ -436,21 +506,19 @@ function getToolRuntimeEnvironment()
 
 /**
  * Creates a test build and runs the test application.
- * @param {BuildState} buildState 
  * @returns {Promise<boolean>}
  */
-async function invokeTests(buildState) 
+async function invokeTests()
 {
-    if (!syncPaths()) return;
+    if (!syncPaths()) return false;
 
-    const testBuildState = new BuildState(BuildTypes.TEST, buildState.subSystem);
+    const testBuildState = new BuildState(BuildTypes.TEST);
     const didRun = await invokeRun(testBuildState, true, TEST_TASK_NAME);
     if (!didRun)
     {
         return false;
     }
 
-    await vscode.commands.executeCommand('gcov-viewer.reloadGcdaFiles');
     return true;
 }
 
@@ -462,7 +530,7 @@ async function invokeTests(buildState)
  */
 async function invokeDebug(buildState) 
 {
-    if (!syncPaths()) return;
+    if (!syncPaths()) return false;
 
     await cleanBuild(true);
     const didBuild = await invokeBuild(buildState);
@@ -472,20 +540,25 @@ async function invokeDebug(buildState)
     }
 
     let debugProfileName = "c-toolkit launch";
-    return vscode.debug.startDebugging(vscode.workspace.workspaceFolders[0], debugProfileName);
+    const workspaceFolder = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+    if (!workspaceFolder)
+    {
+        return false;
+    }
+
+    return vscode.debug.startDebugging(workspaceFolder, debugProfileName);
 }
 
 /**
  * Builds the test configuration and starts a debug session for it.
  * 
- * @param {BuildState} buildState Release or Debug
  * @returns {Promise<boolean>}
  */
-async function invokeDebugTest(buildState)
+async function invokeDebugTest()
 {
-    if (!syncPaths()) return;
+    if (!syncPaths()) return false;
 
-    const testBuildState = new BuildState(BuildTypes.TEST, buildState.subSystem);
+    const testBuildState = new BuildState(BuildTypes.TEST);
     return invokeDebug(testBuildState);
 }
 
@@ -493,9 +566,7 @@ module.exports =
 {
     BuildState,
     BuildTypes,
-    BuildSubsystems,
     selectBuild,
-    selectBuildSubsystem,
     cleanBuild,
     invokeBuild,
     invokeRun,

@@ -2,9 +2,34 @@
 
 ## [v2.1.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.1.2)
 
+### Features
+
+- Added guided build progress for CMake generation and Ninja compilation, with
+  explicit success and failure feedback.
+- Added a dedicated build output channel containing reproducible commands and
+  detailed failure output.
+
 ### Improvements
 
-- Logo and banner image updated.
+- Applications now run in a reusable integrated terminal that remains open
+  after the executable exits.
+- macOS debugging now uses CodeLLDB's integrated terminal, allowing programs to
+  read standard input without opening an external console.
+- CMake uses the `size` executable belonging to the selected compiler toolchain
+  instead of relying on the first incompatible executable found in `PATH`.
+- Configuration refresh now stages replacement files, restores the previous
+  configuration after failures and preserves existing backups.
+- Generated C++ IntelliSense configuration now uses C++17 consistently.
+- Simplified build support around Ninja and removed unused Make, BusyBox and
+  code-coverage integration.
+
+### Fixes
+
+- Component creation now stops when its property selection is cancelled.
+- Project-language detection now handles missing workspaces without throwing.
+- C++ projects no longer receive an unused C compiler configuration.
+- Build progress no longer remains active while waiting for a failure
+  notification to be dismissed.
 
 ## [v2.1.1](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.1.1)
 
