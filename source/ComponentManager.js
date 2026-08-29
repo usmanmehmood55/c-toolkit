@@ -3,7 +3,7 @@ const path         = require('path');
 const vscode       = require('vscode');
 const fileContents = require('./FileContents');
 const Logger       = require('./Logger');
-const { SanitizeFileName, GetWorkspacePath } = require('./CommonUtils');
+const { SanitizeFileName, SelectWorkspaceFolder } = require('./CommonUtils');
 const { IsProjectCpp } = require('./ProjectManager');
 
 /** @type {vscode.Disposable|undefined} */
@@ -112,9 +112,9 @@ function isComponentSimple(component)
  * @param {string}    componentDirPath The directory path where the component files will be located.
  * @param {boolean}   isCpp            Should be true if the project is in C++
  * 
- * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
+ * @returns {Promise<Array<{path: string, content: string}>>} Files to create.
  */
-function ComposeComponentFiles(component, componentDirPath, isCpp) 
+async function ComposeComponentFiles(component, componentDirPath, isCpp)
 {
     const headerNameExt = `${component.name}` + '.' + (isCpp ? 'hpp' : 'h');
     const sourceNameExt = `${component.name}` + '.' + (isCpp ? 'cpp' : 'c');
@@ -141,20 +141,22 @@ function ComposeComponentFiles(component, componentDirPath, isCpp)
             { path: path.join(componentDirPath, `CMakeLists.txt`),         content: fileContents.ComponentCmake(component.name, isCpp) },
         ];
 
-        fs.mkdirSync(path.join(componentDirPath, "src"), { recursive: true });
-        fs.mkdirSync(path.join(componentDirPath, "include"), { recursive: true });
+        await Promise.all([
+            fs.promises.mkdir(path.join(componentDirPath, "src"), { recursive: true }),
+            fs.promises.mkdir(path.join(componentDirPath, "include"), { recursive: true }),
+        ]);
 
         if (component.mocked)
         {
             files.push({ path: path.join(componentDirPath, 'mock', `mock_${sourceNameExt}`), content: fileContents.Mock(`${component.name}`, isCpp) });
-            fs.mkdirSync(path.join(componentDirPath, 'mock'), { recursive: true });
+            await fs.promises.mkdir(path.join(componentDirPath, 'mock'), { recursive: true });
         }
     
         if (component.tested)
         {
             files.push({ path: path.join(componentDirPath, 'test', `test_${headerNameExt}`), content: fileContents.TestHeader(`${component.name}`, isCpp) });
             files.push({ path: path.join(componentDirPath, 'test', `test_${sourceNameExt}`), content: fileContents.TestSource(`${component.name}`, isCpp) });
-            fs.mkdirSync(path.join(componentDirPath, 'test'), { recursive: true });
+            await fs.promises.mkdir(path.join(componentDirPath, 'test'), { recursive: true });
         }
 
     }
@@ -166,13 +168,13 @@ function ComposeComponentFiles(component, componentDirPath, isCpp)
  * Prepares a directory for the component inside the "components" directory.
  * 
  * @param {Component} component The component for which to prepare the directory.
+ * @param {string} workspacePath Selected workspace path.
  * 
  * @returns {Promise<string|undefined>}
  * The path to the component directory, or undefined if the folder already exists.
  */
-async function PrepareComponentDirectory(component)
+async function PrepareComponentDirectory(component, workspacePath)
 {
-    const workspacePath = GetWorkspacePath();
     if (!workspacePath || !component.name)
     {
         return undefined;
@@ -187,7 +189,7 @@ async function PrepareComponentDirectory(component)
         return undefined;
     }
 
-    fs.mkdirSync(componentDirPath, { recursive: true });
+    await fs.promises.mkdir(componentDirPath, { recursive: true });
 
     return componentDirPath;
 }
@@ -196,13 +198,13 @@ async function PrepareComponentDirectory(component)
  * Adds the newly created component to the main CMakeLists.txt.
  * 
  * @param {Component} component The component to register in the CMakeLists.txt.
+ * @param {string} workspacePath Selected workspace path.
  * 
  * @returns {Promise<void|undefined>}
  * A promise that resolves when the operation is complete, or undefined if CMakeLists.txt does not exist.
  */
-async function RegisterComponentToMainCmake(component)
+async function RegisterComponentToMainCmake(component, workspacePath)
 {
-    const workspacePath = GetWorkspacePath();
     if (!workspacePath || !component.name)
     {
         return undefined;
@@ -217,7 +219,7 @@ async function RegisterComponentToMainCmake(component)
         return undefined;
     }
 
-    let rootCmakeContent = fs.readFileSync(rootCmakeFilePath).toString();
+    let rootCmakeContent = await fs.promises.readFile(rootCmakeFilePath, 'utf8');
 
     // append the component to the COMPONENTS list
     let updatedCmakeContent = rootCmakeContent.replace(/(set\(COMPONENTS\s*\n)([^\)]*)\)/s, `$1$2\n  ${component.name})`);
@@ -246,7 +248,7 @@ async function RegisterComponentToMainCmake(component)
         updatedCmakeContent = updatedCmakeContent.replace(/add_executable\(/, `# Component build options${newOptions}\n\nadd_executable(`);
     }
 
-    fs.writeFileSync(rootCmakeFilePath, updatedCmakeContent);
+    await fs.promises.writeFile(rootCmakeFilePath, updatedCmakeContent);
 }
 
 /**
@@ -258,14 +260,15 @@ async function RegisterComponentToMainCmake(component)
  */
 async function createNewComponent()
 {
-    let workspacePath = GetWorkspacePath();
-    if (!workspacePath)
+    const workspaceFolder = await SelectWorkspaceFolder();
+    if (!workspaceFolder)
     {
         vscode.window.showErrorMessage("No folder open in the workspace");
         return undefined;
     }
 
-    const isCpp = IsProjectCpp();
+    const workspacePath = workspaceFolder.uri.fsPath;
+    const isCpp = IsProjectCpp(workspacePath);
     if (isCpp === undefined)
     {
         return undefined;
@@ -283,13 +286,13 @@ async function createNewComponent()
     const selectedComponent = await SelectComponentProperties(component);
     if (selectedComponent === undefined) return undefined;
 
-    let componentDirPath = await PrepareComponentDirectory(component);
+    let componentDirPath = await PrepareComponentDirectory(component, workspacePath);
     if (componentDirPath === undefined) return undefined;
 
-    let files = ComposeComponentFiles(component, componentDirPath, isCpp);
-    files.forEach(file => fs.writeFileSync(file.path, file.content));
+    let files = await ComposeComponentFiles(component, componentDirPath, isCpp);
+    await Promise.all(files.map(file => fs.promises.writeFile(file.path, file.content)));
 
-    await RegisterComponentToMainCmake(component);
+    await RegisterComponentToMainCmake(component, workspacePath);
 
     Logger.Info(`Component ${component.name} created.`);
 }

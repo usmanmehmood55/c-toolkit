@@ -57,7 +57,7 @@ const PackageManagers =
 function findToolInPath(toolName)
 {
     const lookupCommand = CheckOs() === OsTypes.WINDOWS ? 'where' : 'which';
-    const lookup = spawnSync(lookupCommand, [toolName], { encoding: 'utf-8' });
+    const lookup = spawnSync(lookupCommand, [toolName], { encoding: 'utf-8', timeout: 5000 });
 
     if (lookup.status !== 0 || !lookup.stdout)
     {
@@ -186,7 +186,7 @@ function canExecuteTool(toolName, toolPath)
         return fs.existsSync(toolPath);
     }
 
-    const process = spawnSync(toolPath, ['--version'], { stdio: 'ignore' });
+    const process = spawnSync(toolPath, ['--version'], { stdio: 'ignore', timeout: 5000 });
 
     return process.error === undefined && process.status === 0;
 }
@@ -263,9 +263,12 @@ const installScoop = () =>
 async function askAndInstallScoop()
 {
     const toolName = BuildTools.SCOOP;
-    vscode.window.showWarningMessage(`${toolName} not found. Would you like to install?`, 'Yes', 'No').then(selection =>
+    vscode.window.showWarningMessage(
+        'Scoop is required for automatic Windows tool installation. Install Scoop for the current user and continue?',
+        { modal: true, detail: 'Runs the official get.scoop.sh installer and may update your user PATH.' },
+        'Install Scoop', 'Show Command').then(selection =>
     {
-        if (selection === 'Yes')
+        if (selection === 'Install Scoop')
         {
             vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
@@ -289,7 +292,11 @@ async function askAndInstallScoop()
                 progress.report({ message: `Complete` });
             });
         }
-        else if (selection === 'No')
+        else if (selection === 'Show Command')
+        {
+            showInstallationCommand('powershell -Command "& {Set-ExecutionPolicy RemoteSigned -scope CurrentUser; iwr -useb get.scoop.sh | iex}"');
+        }
+        else
         {
             Logger.Warning('Scoop was not found and the user did not consent to installation');
             vscode.window.showWarningMessage('Build tools for Windows would have to be installed manually.');
@@ -304,9 +311,9 @@ async function askAndInstallScoop()
  * @param {string}   command      The command to execute.
  * @param {string[]} args         The arguments for the command.
  * 
- * @returns {string} Stdout string if it passes.
+ * @returns {Promise<string>} Stdout string if it passes.
  */
-function execCommand(userPassword, command, args)
+async function execCommand(userPassword, command, args)
 {
     if (command === 'scoop')
     {
@@ -316,29 +323,33 @@ function execCommand(userPassword, command, args)
 
     Logger.Info(`Executing: ${command} ${args.join(' ')}`);
 
-    const process = spawnSync(command, args, { input: `${userPassword || ''}\n`, encoding: 'utf-8' });
-
-    // Convert Buffer to String
-    const stdout = process.stdout ? process.stdout.toString() : '';
-    const stderr = process.stderr ? process.stderr.toString() : '';
-
-    // Log the outputs
-    if (stdout)
+    return new Promise((resolve, reject) =>
     {
-        Logger.Info(`stdout: ${stdout}`);
-    }
-
-    if (stderr)
-    {
-        Logger.Error(`stderr: ${stderr}`);
-    }
-
-    if (process.status !== 0)
-    {
-        throw new Error(`Command failed with code ${process.status}`);
-    }
-
-    return stdout;
+        const child = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', data =>
+        {
+            stdout += data.toString();
+        });
+        child.stderr.on('data', data =>
+        {
+            stderr += data.toString();
+        });
+        child.on('error', reject);
+        child.on('close', code =>
+        {
+            if (stdout) Logger.Info(`stdout: ${stdout}`);
+            if (stderr) Logger.Error(`stderr: ${stderr}`);
+            if (code !== 0)
+            {
+                reject(new Error(`Command failed with code ${code}`));
+                return;
+            }
+            resolve(stdout);
+        });
+        child.stdin.end(`${userPassword || ''}\n`);
+    });
 }
 
 /**
@@ -392,7 +403,7 @@ function installTool(toolName, userPassword)
                 if (indexOfNinja !== -1) installArgs[indexOfNinja] = 'ninja-build';
             }
 
-            execCommand(userPassword, installCommand, installArgs);
+            await execCommand(userPassword, installCommand, installArgs);
             isInstalled = true;
             progress.report({ message: `Finalizing...` });
         }
@@ -499,27 +510,26 @@ function processInstallationOutputs(installedTools, failedTools)
 }
 
 /**
- * Asks the user their sudo password to allow for tools installation.
- * 
- * @returns {Promise<string|undefined>} User's password
+ * Shows an installation command in an integrated terminal without executing it.
+ * @param {string} command Installation command.
  */
-async function askForPassword()
+function showInstallationCommand(command)
 {
-    // Ask the user about the project name
-    let passwordAsker = await vscode.window.showInputBox({
-        prompt     : 'Please enter your sudo password, it is required to to install the tools.',
-        value      : undefined,
-        placeHolder: 'your password',
-        password   : true,
-    });
+    const terminal = vscode.window.createTerminal({ name: 'C C++ Toolkit: Tool Setup' });
+    terminal.show(false);
+    terminal.sendText(command, false);
+}
 
-    if (!passwordAsker)
-    {
-        vscode.window.showErrorMessage('Superuser access is required to install the missing tools.');
-        return;
-    }
-
-    return passwordAsker;
+/**
+ * @param {string[]} tools Missing tools.
+ * @returns {string} Platform installation command.
+ */
+function getInstallationCommand(tools)
+{
+    const packages = tools.map(tool => tool === BuildTools.NINJA && CheckOs() === OsTypes.LINUX ? 'ninja-build' : tool);
+    if (CheckOs() === OsTypes.WINDOWS) return `scoop install ${packages.join(' ')}`;
+    if (CheckOs() === OsTypes.MACOS) return `brew install ${packages.join(' ')}`;
+    return `sudo apt-get install -y ${packages.join(' ')}`;
 }
 
 /**
@@ -531,17 +541,26 @@ async function askForPassword()
 async function askAndInstallMultipleTools(tools)
 {
     const toolList = FormatList(tools);
-
-    const selection = await vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No');
-    if (selection === 'Yes')
+    const installCommand = getInstallationCommand(tools);
+    const selection = await vscode.window.showWarningMessage(
+        `Missing build tools: ${toolList}`,
+        { modal: true, detail: `Install all using ${PackageManagers[CheckOs()]}?\n\n${installCommand}` },
+        'Install All', 'Show Command');
+    if (selection === 'Install All')
     {
-        /** @type {string|undefined} */
-        let userPassword = undefined;
         if (CheckOs() === OsTypes.LINUX)
         {
-            userPassword = await askForPassword();
+            const terminal = vscode.window.createTerminal({ name: 'C C++ Toolkit: Tool Setup' });
+            terminal.show(false);
+            terminal.sendText(installCommand);
+            vscode.window.showInformationMessage('Tool installation is running in the integrated terminal. Run “Search For Build Tools” afterward to verify it.');
+            return;
         }
-        await InstallMultipleTools(tools, userPassword);
+        await InstallMultipleTools(tools, undefined);
+    }
+    else if (selection === 'Show Command')
+    {
+        showInstallationCommand(installCommand);
     }
     else
     {

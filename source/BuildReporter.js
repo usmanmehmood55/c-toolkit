@@ -88,10 +88,19 @@ class BuildReporter
         }
     }
 
-    /** Reveals build details without taking keyboard focus. */
-    Show()
+    /**
+     * Reveals build details.
+     * @param {boolean} preserveFocus Whether to keep focus in the editor.
+     */
+    Show(preserveFocus = true)
     {
-        this.outputChannel.show(true);
+        this.outputChannel.show(preserveFocus);
+    }
+
+    /** Releases the output channel when the extension is deactivated. */
+    dispose()
+    {
+        this.outputChannel.dispose();
     }
 }
 

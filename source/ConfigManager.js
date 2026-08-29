@@ -1,7 +1,7 @@
 const vscode             = require('vscode');
 const {SearchForTools}   = require('./ToolsManager');
 const ProjectManager     = require('./ProjectManager');
-const {GetWorkspacePath} = require('./CommonUtils');
+const {SelectWorkspaceFolder} = require('./CommonUtils');
 const fs                 = require('fs');
 const path               = require('path');
 const Logger             = require('./Logger');
@@ -40,13 +40,14 @@ async function refreshConfigs()
 
     await SearchForTools();
 
-    let workspacePath = GetWorkspacePath();
-    if (!workspacePath) 
+    const workspaceFolder = await SelectWorkspaceFolder();
+    if (!workspaceFolder)
     {
         vscode.window.showErrorMessage("No folder open in the workspace");
         return undefined;
     }
 
+    const workspacePath = workspaceFolder.uri.fsPath;
     const vscodeFolder = path.join(workspacePath, '.vscode');
     const backupFolder = path.join(workspacePath, '.oldVscode');
     const stagingFolder = path.join(workspacePath, `.vscode.c-toolkit-${Date.now()}`);
@@ -77,7 +78,7 @@ async function refreshConfigs()
         await fs.promises.mkdir(stagingFolder, { recursive: true });
 
         /** @type {Array<{ path: string, content: string }>} */
-        const vscodeFiles = ProjectManager.ComposeVscodeFiles(workspacePath, false);
+        const vscodeFiles = ProjectManager.ComposeVscodeFiles(workspacePath);
         await Promise.all(vscodeFiles.map(file =>
             fs.promises.writeFile(path.join(stagingFolder, path.basename(file.path)), file.content)));
 

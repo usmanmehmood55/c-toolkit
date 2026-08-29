@@ -1,5 +1,24 @@
 # Change Log
 
+## [v2.1.3](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.1.3)
+
+### Improvements
+
+- Added Workspace Trust and multi-root workspace support.
+- Added a one-time feedback invitation that can also be reopened from the
+  Command Palette.
+- Builds can now be cancelled and executable targets are detected from CMake.
+- Tool installation now shows the exact command and no longer prompts on startup.
+- Linux tool installation now requests elevation in the integrated terminal.
+- Generated CMake uses target-based flags without duplication.
+- Reduced debugger requirements and packaged extension contents.
+
+### Fixes
+
+- Build failures now open and focus detailed output automatically.
+- Project and configuration operations no longer block the extension host.
+- Removed unused CMake parsing code.
+
 ## [v2.1.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.1.2)
 
 ### Features
