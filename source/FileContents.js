@@ -362,7 +362,7 @@ function ProjectCmake(isCpp)
     "# Individual build type flags"                                                                    + "\n" +
     `set(CMAKE_${lang}_FLAGS_RELEASE \"\${CMAKE_${lang}_FLAGS} -O2\")`                                 + "\n" +
     `set(CMAKE_${lang}_FLAGS_DEBUG   \"\${CMAKE_${lang}_FLAGS} -O0 -g3\")`                             + "\n" +
-    `set(CMAKE_${lang}_FLAGS_TEST    \"\${CMAKE_${lang}_FLAGS} -O0 -g3 -D__test_build__ --coverage\")` + "\n" +
+    `set(CMAKE_${lang}_FLAGS_TEST    \"\${CMAKE_${lang}_FLAGS} -O0 -g3 -D__test_build__\")`            + "\n" +
     ""                                                                                                 + "\n" +
     "# List of components"                                                                             + "\n" +
     "set(COMPONENTS "                                                                                  + "\n" +
@@ -375,14 +375,11 @@ function ProjectCmake(isCpp)
     "    add_subdirectory(components/${COMPONENT})"                                                    + "\n" +
     "endforeach()"                                                                                     + "\n" +
     ""                                                                                                 + "\n" +
-    "# Linking to coverage report tool in case of test build"                                          + "\n" +
-    "if(CMAKE_BUILD_TYPE MATCHES Test)"                                                                + "\n" +
-    "    target_link_libraries(${PROJECT_NAME} gcov)"                                                  + "\n" +
-    "endif()"                                                                                          + "\n" +
-    ""                                                                                                 + "\n" +
     "# Printing the size of build after building"                                                      + "\n" +
-    "add_custom_command(TARGET ${PROJECT_NAME} "                                                       + "\n" +
-    "    POST_BUILD COMMAND size $<TARGET_FILE:${PROJECT_NAME}>)"                                      + "\n" +
+    "if(CMAKE_SIZE)"                                                                                   + "\n" +
+    "    add_custom_command(TARGET ${PROJECT_NAME}"                                                    + "\n" +
+    "        POST_BUILD COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${PROJECT_NAME}>)"                         + "\n" +
+    "endif()"                                                                                          + "\n" +
     ""                                                                                                 + "\n" +
     "# End of root CMakeLists.txt"                                                                     + "\n" ;
 
@@ -408,7 +405,7 @@ function CppPropertiesJson()
     "            \"includePath\"     : [ \"${workspaceFolder}/**\" ],"              + "\n" +
     `            \"compilerPath\"    : \"${compilerPath}\",`                        + "\n" +
     "            \"cStandard\"       : \"c11\","                                    + "\n" +
-    "            \"cppStandard\"     : \"c++11\","                                  + "\n" +
+    "            \"cppStandard\"     : \"c++17\","                                  + "\n" +
     `            \"intelliSenseMode\": \"${intelliSenseMode[CheckOs()]}\",`         + "\n" +
     "            \"compileCommands\" : \"build/compile_commands.json\""             + "\n" +
     "        }"                                                                     + "\n" +
@@ -428,6 +425,17 @@ function LaunchJson()
 {
     const programPath = ('${workspaceRoot}/build/${workspaceFolderBasename}' + 
         ((CheckOs() === OsTypes.WINDOWS) ? '.exe' : ''));
+    const isMacOs = CheckOs() === OsTypes.MACOS;
+    const debuggerType = isMacOs ? 'lldb' : 'cppdbg';
+    const stopConfiguration = isMacOs ?
+        "        \"stopOnEntry\"    : false," :
+        "        \"stopAtEntry\"    : false,";
+    const environmentConfiguration = isMacOs ?
+        "        \"env\"            : {}," :
+        "        \"environment\"    : [],";
+    const terminalConfiguration = isMacOs ?
+        "        \"terminal\"        : \"integrated\"" :
+        "        \"externalConsole\" : false";
 
     const contentStart = 
     
@@ -435,15 +443,15 @@ function LaunchJson()
     "    \"configurations\": ["                                                                   + "\n" +
     "    {"                                                                                       + "\n" +
     "        \"name\"           : \"c-toolkit launch\","                                          + "\n" +
-    "        \"type\"           : \"cppdbg\","                                                    + "\n" +
+    `        \"type\"           : \"${debuggerType}\",`                                           + "\n" +
     "        \"request\"        : \"launch\","                                                    + "\n" +
     `        \"program\"        : \"${programPath}\",`                                            + "\n" +
     "        \"args\"           : [],"                                                            + "\n" +
-    "        \"stopAtEntry\"    : false,"                                                         + "\n" +
+    `${stopConfiguration}`                                                                        + "\n" +
     "        \"cwd\"            : \"${workspaceRoot}\","                                          + "\n" +
-    "        \"environment\"    : [],"                                                            + "\n" +
-    "        \"externalConsole\": false,"                                                         + "\n" +
-    `        \"MIMode\"         : \"${LaunchJsonMiMode[CheckOs()]}\",`                            + "\n" ;
+    `${environmentConfiguration}`                                                                 + "\n" +
+    `${terminalConfiguration}${isMacOs ? '' : ','}`                                               + "\n" +
+    (isMacOs ? '' : `        \"MIMode\"         : \"${LaunchJsonMiMode[CheckOs()]}\",\n`);
 
     const contentMid =
     `        \"miDebuggerPath\" : \"gdb\",`                                                       + "\n" +
@@ -467,7 +475,7 @@ function LaunchJson()
     "    ]"                                                                                       + "\n" +
     "}"                                                                                           + "\n" ;
 
-    const content = (CheckOs() === OsTypes.MACOS) ? 
+    const content = isMacOs ?
         (contentStart + contentEnd) : (contentStart + contentMid + contentEnd);
 
     return content;

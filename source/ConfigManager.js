@@ -49,6 +49,9 @@ async function refreshConfigs()
 
     const vscodeFolder = path.join(workspacePath, '.vscode');
     const backupFolder = path.join(workspacePath, '.oldVscode');
+    const stagingFolder = path.join(workspacePath, `.vscode.c-toolkit-${Date.now()}`);
+    /** @type {string|undefined} */
+    let previousFolder;
 
     // Check if .vscode exists and prompt for confirmation
     if (fs.existsSync(vscodeFolder)) 
@@ -60,28 +63,73 @@ async function refreshConfigs()
             "No"
         );
 
-        switch (choice) 
+        if (choice !== "Yes" && choice !== "Yes and Backup")
         {
-        case "Yes":
-            fs.rmSync(vscodeFolder, { recursive: true });
-            break;
-        case "Yes and Backup":
-            if (fs.existsSync(backupFolder))
-            {
-                fs.rmSync(backupFolder, { recursive: true });
-            }
-            fs.renameSync(vscodeFolder, backupFolder);
-            break;
-        case "No":
-            // Exit without making changes
             return undefined;
         }
+
+        previousFolder = choice === "Yes and Backup" ?
+            GetAvailableBackupPath(backupFolder) : `${stagingFolder}-previous`;
     }
 
-    // Create new configurations
-    /** @type {Array<{ path: string, content: string }>} */
-    let vscodeFiles = ProjectManager.ComposeVscodeFiles(workspacePath);
-    vscodeFiles.forEach(file => fs.writeFileSync(file.path, file.content));
+    try
+    {
+        await fs.promises.mkdir(stagingFolder, { recursive: true });
+
+        /** @type {Array<{ path: string, content: string }>} */
+        const vscodeFiles = ProjectManager.ComposeVscodeFiles(workspacePath, false);
+        await Promise.all(vscodeFiles.map(file =>
+            fs.promises.writeFile(path.join(stagingFolder, path.basename(file.path)), file.content)));
+
+        if (previousFolder)
+        {
+            await fs.promises.rename(vscodeFolder, previousFolder);
+        }
+
+        await fs.promises.rename(stagingFolder, vscodeFolder);
+
+        if (previousFolder && previousFolder.endsWith('-previous'))
+        {
+            await fs.promises.rm(previousFolder, { recursive: true });
+        }
+    }
+    catch (error)
+    {
+        await fs.promises.rm(stagingFolder, { recursive: true, force: true });
+
+        if (previousFolder && fs.existsSync(previousFolder) && !fs.existsSync(vscodeFolder))
+        {
+            await fs.promises.rename(previousFolder, vscodeFolder);
+        }
+
+        const message = error instanceof Error ? error.message : String(error);
+        Logger.Error(`Failed to refresh configurations: ${message}`);
+        vscode.window.showErrorMessage(`Failed to refresh configurations: ${message}`);
+    }
+}
+
+/**
+ * Finds a backup path without deleting an existing backup.
+ *
+ * @param {string} preferredPath Preferred backup path
+ * @returns {string} Available backup path
+ */
+function GetAvailableBackupPath(preferredPath)
+{
+    if (!fs.existsSync(preferredPath))
+    {
+        return preferredPath;
+    }
+
+    let suffix = 1;
+    let candidate = `${preferredPath}-${suffix}`;
+    while (fs.existsSync(candidate))
+    {
+        suffix++;
+        candidate = `${preferredPath}-${suffix}`;
+    }
+
+    return candidate;
 }
 
 module.exports = RefreshConfigsCommand;

@@ -11,9 +11,6 @@ let CommandCreateCProject;
 /** @type {vscode.Disposable} */
 let CommandCreateCppProject;
 
-/** @type {Project} */
-let CurrentProject = undefined;
-
 /**
  * Self explanatory
  */
@@ -22,7 +19,7 @@ class Project
     /**
      * Creates a new Project instance.
      * 
-     * @param {string?} name The name of the project.
+     * @param {string} name The name of the project.
      */
     constructor(name)
     {
@@ -38,14 +35,22 @@ class Project
  * Reads the root CMakeLists.txt in the open workspace to decide if the
  * project is for C++ or C.
  * 
- * @returns {boolean?} True if it's C++, False if C, undefined if it's unable to find.
+ * @returns {boolean|undefined} True if it's C++, False if C, undefined if it's unable to find.
  */
 function IsProjectCpp()
 {
-    /** @type {boolean?} */
+    /** @type {boolean|undefined} */
     let isCpp = undefined;
 
     const rootPath = GetWorkspacePath();
+    if (!rootPath)
+    {
+        const msg = 'No folder open in the workspace';
+        Logger.Warning(msg);
+        vscode.window.showWarningMessage(msg);
+        return undefined;
+    }
+
     const cmakeListsPath = path.join(rootPath, 'CMakeLists.txt');
 
     try
@@ -78,7 +83,8 @@ function IsProjectCpp()
     }
     catch (err)
     {
-        const msg = `Failed to read CMakeLists.txt: ${err.message}`;
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const msg = `Failed to read CMakeLists.txt: ${errorMessage}`;
         Logger.Warning(msg);
         vscode.window.showWarningMessage(msg);
     }
@@ -119,13 +125,17 @@ function CreateCppProjectCommand(context)
 /**
  * Composes a list of files to be created for a project.
  * 
- * @param {string}  projectDirPath The directory path where the project files will be located.
+ * @param {string}  projectDirPath  The directory path where the project files will be located.
+ * @param {boolean} createDirectory Whether to create the .vscode directory.
  * 
  * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
  */
-function ComposeVscodeFiles(projectDirPath) 
+function ComposeVscodeFiles(projectDirPath, createDirectory = true)
 {
-    fs.mkdirSync(path.join(projectDirPath, ".vscode"), { recursive: true });
+    if (createDirectory)
+    {
+        fs.mkdirSync(path.join(projectDirPath, ".vscode"), { recursive: true });
+    }
 
     let files = 
     [
@@ -234,9 +244,9 @@ async function PrepareProjectDirectory(project)
  */
 async function createNewProject(isCpp)
 {
-    CurrentProject = new Project(undefined);
+    const currentProject = new Project('');
 
-    let projectDirPath = await PrepareProjectDirectory(CurrentProject);
+    let projectDirPath = await PrepareProjectDirectory(currentProject);
     if (projectDirPath === undefined) return undefined;
 
     /** @type {Array<{ path: string, content: string }>} */
@@ -259,13 +269,13 @@ async function createNewProject(isCpp)
 /** @returns {Promise<void>} */
 async function createNewCProject()
 {
-    createNewProject(false);
+    await createNewProject(false);
 }
 
 /** @returns {Promise<void>} */
 async function createNewCppProject()
 {
-    createNewProject(true);
+    await createNewProject(true);
 }
 
 module.exports = 

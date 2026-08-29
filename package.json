@@ -3,7 +3,7 @@
     "publisher": "UsmanMehmood",
     "displayName": "C C++ Toolkit",
     "description": "Create, compile and run C and C++ applications easily using CMake. The only C/C++ code runner you'll need!",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "icon": "images/icon.png",
     "repository": {
         "type": "git",
@@ -41,8 +41,32 @@
             {
                 "command": "extension.refreshConfigs",
                 "title": "C C++ Toolkit: Refresh Configurations"
+            },
+            {
+                "command": "extension.selectOutputMode",
+                "title": "C C++ Toolkit: Select Output Mode"
             }
         ],
+        "configuration": {
+            "title": "C C++ Toolkit",
+            "properties": {
+                "c-cpp-toolkit.outputMode": {
+                    "type": "string",
+                    "enum": [
+                        "guided",
+                        "commands",
+                        "verbose"
+                    ],
+                    "enumDescriptions": [
+                        "Show friendly progress notifications; keep commands in Build Output.",
+                        "Open Build Output automatically and show commands with concise stages.",
+                        "Open Build Output automatically and include complete process output."
+                    ],
+                    "default": "guided",
+                    "description": "Controls how much build detail is shown."
+                }
+            }
+        },
         "snippets": [
             {
                 "language": "c",
@@ -51,15 +75,17 @@
         ]
     },
     "scripts": {
+        "check": "tsc --noEmit --project jsconfig.json",
         "lint": "eslint ."
     },
     "extensionDependencies": [
         "ms-vscode.cpptools-extension-pack",
-        "JacquesLucke.gcov-viewer"
+        "vadimcn.vscode-lldb"
     ],
     "devDependencies": {
         "@types/node": "20.2.5",
         "@types/vscode": "^1.81.0",
+        "@vscode/vsce": "3.9.2",
         "eslint": "^8.57.0",
         "eslint-plugin-jsdoc": "^50.2.2",
         "typescript": "^5.1.3"

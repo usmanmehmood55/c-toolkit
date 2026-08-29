@@ -6,112 +6,116 @@ on:
       - main
       - pre_release
 
+# Marketplace versions and GitHub tags are global to the project, so releases
+# from the stable and pre-release branches must not run at the same time.
+concurrency:
+  group: extension-release
+  cancel-in-progress: false
+
 jobs:
   build_and_release:
+    name: Validate, package, and publish
     runs-on: ubuntu-latest
-    if     : github.event.head_commit.author.email != 'github-actions[bot]@users.noreply.github.com'
     permissions:
       contents: write
-    outputs: 
-      isPrerelease: ${{ steps.set_prerelease.outputs.isPrerelease }}
 
     steps:
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-
-      - name: Install vsce
-        run: |
-          npm install -g @vscode/vsce
-
-      - name: Validating VSCE PAT
-        run: |
-          echo "Checking VSCE_PUBLISH_PAT..."
-          if ! vsce verify-pat -p ${{ secrets.VSCE_PUBLISH_PAT }} UsmanMehmood; then
-            echo "VSCE_PUBLISH_PAT is invalid or expired."
-            exit 1
-          else
-            echo "VSCE_PUBLISH_PAT is valid."
-          fi
-
-      - name: Validating GITHUB_TOKEN
-        run: |
-          echo "Checking GITHUB_TOKEN..."
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }})
-          if [ "$response" -ne 200 ]; then
-            echo "GITHUB_TOKEN is unavailable or invalid for this repository."
-            exit 1
-          else
-            echo "GITHUB_TOKEN is valid."
-          fi
-
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - name: Determine release type
-        id  : set_prerelease
-        run : |
-          if [[ "${{ github.ref }}" == "refs/heads/pre_release" ]]; then
-            echo "isPrerelease=true" >> "$GITHUB_OUTPUT"
-            echo "PreRelease"
-          else
-            echo "isPrerelease=false" >> "$GITHUB_OUTPUT"
-            echo "Release"
-          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run check
 
       - name: Check for version bump
-        id: check_version
+        id: version
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
-          PREVIOUS_VERSION=$(git show HEAD~1:package.json | jq .version -r)
-          CURRENT_VERSION=$(jq .version -r package.json)
-          
-          echo "Previous Version: $PREVIOUS_VERSION"
-          echo "Current Version: $CURRENT_VERSION"
+          current_version=$(node -p "require('./package.json').version")
+          previous_version=''
 
-          if [[ "$PREVIOUS_VERSION" != "$CURRENT_VERSION" ]]; then
-            echo "version_bumped=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "version_bumped=false" >> "$GITHUB_OUTPUT"
+          if [[ ! "$BEFORE_SHA" =~ ^0+$ ]] && git cat-file -e "${BEFORE_SHA}:package.json" 2>/dev/null; then
+            previous_version=$(git show "${BEFORE_SHA}:package.json" | node -e \
+              "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(JSON.parse(input).version));")
           fi
 
-      - name: Package Extension
-        if  : steps.check_version.outputs.version_bumped == 'true'
-        run : vsce package
+          echo "Previous version: ${previous_version:-not available}"
+          echo "Current version: $current_version"
+          echo "current=$current_version" >> "$GITHUB_OUTPUT"
 
-      - name: Publish to Marketplace
-        if  : steps.check_version.outputs.version_bumped == 'true'
-        run : |
-          if [[ "${{ steps.set_prerelease.outputs.isPrerelease }}" == "true" ]]; then
-            vsce publish --pre-release
+          if [[ -z "$previous_version" ]]; then
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "The previous package version could not be read; publishing is skipped for safety."
+          elif [[ "$previous_version" != "$current_version" ]]; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
           else
-            vsce publish
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "The version did not change; validation passed and publishing will be skipped."
           fi
+
+      - name: Set release metadata
+        if: steps.version.outputs.bumped == 'true'
+        id: release
+        env:
+          VERSION: ${{ steps.version.outputs.current }}
+        run: |
+          package_name=$(node -p "require('./package.json').name")
+
+          if [[ "$GITHUB_REF_NAME" == 'pre_release' ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "package_flag=--pre-release" >> "$GITHUB_OUTPUT"
+            echo "tag=v${VERSION}-pre" >> "$GITHUB_OUTPUT"
+            echo "release_name=Pre-release ${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "package_flag=" >> "$GITHUB_OUTPUT"
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "release_name=Release ${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "artifact=${package_name}-${VERSION}.vsix" >> "$GITHUB_OUTPUT"
+
+      - name: Package extension
+        if: steps.version.outputs.bumped == 'true'
+        env:
+          ARTIFACT: ${{ steps.release.outputs.artifact }}
+          PACKAGE_FLAG: ${{ steps.release.outputs.package_flag }}
+        run: npx --no-install vsce package $PACKAGE_FLAG --out "$ARTIFACT"
+
+      - name: Verify Marketplace credentials
+        if: steps.version.outputs.bumped == 'true'
         env:
           VSCE_PAT: ${{ secrets.VSCE_PUBLISH_PAT }}
+        run: npx --no-install vsce verify-pat --pat "$VSCE_PAT" UsmanMehmood
 
-      - name: Get package information
-        if  : steps.check_version.outputs.version_bumped == 'true'
-        id  : package_info
-        run : |
-          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-          echo "name=$(node -p "require('./package.json').name")" >> "$GITHUB_OUTPUT"
-          echo "publisher=$(node -p "require('./package.json').publisher")" >> "$GITHUB_OUTPUT"
-
-      - name: Create Release
-        if  : steps.check_version.outputs.version_bumped == 'true'
-        id  : create_release
-        uses: softprops/action-gh-release@v2
-        with: 
-          tag_name    : ${{ steps.package_info.outputs.version }}
-          name        : Release ${{ steps.package_info.outputs.version }}
-          draft       : false
-          prerelease  : ${{ steps.set_prerelease.outputs.isPrerelease == 'true' }}
-          files       : ./${{ steps.package_info.outputs.name }}-${{ steps.package_info.outputs.version }}.vsix
+      - name: Publish packaged extension to Marketplace
+        if: steps.version.outputs.bumped == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT: ${{ steps.release.outputs.artifact }}
+          PACKAGE_FLAG: ${{ steps.release.outputs.package_flag }}
+          VSCE_PAT: ${{ secrets.VSCE_PUBLISH_PAT }}
+        run: npx --no-install vsce publish $PACKAGE_FLAG --packagePath "$ARTIFACT" --pat "$VSCE_PAT" --skip-duplicate
+
+      - name: Create GitHub release
+        if: steps.version.outputs.bumped == 'true'
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: ${{ steps.release.outputs.release_name }}
+          prerelease: ${{ steps.release.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          files: ${{ steps.release.outputs.artifact }}

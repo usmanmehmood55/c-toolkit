@@ -33,10 +33,8 @@ const BuildTools =
     GDB   : 'gdb',
     CMAKE : 'cmake',
     NINJA : 'ninja',
-    MAKE  : 'make',
     SCOOP : 'scoop',
     GIT   : 'git',
-    BBOX  : 'busybox',
 };
 
 /**
@@ -119,36 +117,6 @@ function getGccToolCandidates(toolName)
 }
 
 /**
- * Returns the preferred standalone GNU Make path on Windows when available.
- *
- * @returns {string|undefined} absolute path to GNU Make
- */
-function getPreferredWindowsMakePath()
-{
-    const standaloneMakePath = path.join(os.homedir(), 'scoop', 'apps', 'make', 'current', 'bin', 'make.exe');
-    return fs.existsSync(standaloneMakePath) ? standaloneMakePath : undefined;
-}
-
-/**
- * Returns true when a Scoop shim delegates to BusyBox.
- *
- * @param {string} toolName Name of the tool to inspect
- *
- * @returns {boolean} true if the shim points at BusyBox
- */
-function isBusyboxBackedShim(toolName)
-{
-    const shimPath = path.join(os.homedir(), 'scoop', 'shims', `${toolName}.shim`);
-    if (!fs.existsSync(shimPath))
-    {
-        return false;
-    }
-
-    const shimContents = fs.readFileSync(shimPath, 'utf-8');
-    return shimContents.toLowerCase().includes('busybox.exe');
-}
-
-/**
  * Resolves the absolute executable path for a tool.
  *
  * @param {string} toolName Name of the tool to search for
@@ -158,15 +126,6 @@ function isBusyboxBackedShim(toolName)
 function resolveToolPath(toolName)
 {
     const toolInPath = findToolInPath(toolName);
-    if (CheckOs() === OsTypes.WINDOWS && toolName === BuildTools.MAKE && toolInPath && isBusyboxBackedShim(toolName))
-    {
-        const preferredMakePath = getPreferredWindowsMakePath();
-        if (preferredMakePath)
-        {
-            return preferredMakePath;
-        }
-    }
-
     if (toolInPath)
     {
         return toolInPath;
@@ -194,6 +153,25 @@ function resolveToolPath(toolName)
 }
 
 /**
+ * Resolves a tool installed beside another executable, such as size.exe beside g++.exe.
+ *
+ * @param {string} toolName     Name of the tool to resolve
+ * @param {string|undefined} referencePath Absolute path of the related executable
+ * @returns {string|undefined} Matching tool path when present
+ */
+function resolveSiblingToolPath(toolName, referencePath)
+{
+    if (!referencePath)
+    {
+        return undefined;
+    }
+
+    const extension = CheckOs() === OsTypes.WINDOWS ? '.exe' : '';
+    const candidate = path.join(path.dirname(referencePath), `${toolName}${extension}`);
+    return fs.existsSync(candidate) ? candidate : undefined;
+}
+
+/**
  * Checks whether a resolved tool can actually be launched.
  *
  * @param {string} toolName  Name of the tool to search for
@@ -208,8 +186,7 @@ function canExecuteTool(toolName, toolPath)
         return fs.existsSync(toolPath);
     }
 
-    const args = toolName === BuildTools.BBOX ? [] : ['--version'];
-    const process = spawnSync(toolPath, args, { stdio: 'ignore' });
+    const process = spawnSync(toolPath, ['--version'], { stdio: 'ignore' });
 
     return process.error === undefined && process.status === 0;
 }
@@ -306,7 +283,8 @@ async function askAndInstallScoop()
                 catch (error)
                 {
                     progress.report({ message: `Failed!` });
-                    vscode.window.showErrorMessage(error.message);
+                    const message = error instanceof Error ? error.message : String(error);
+                    vscode.window.showErrorMessage(message);
                 }
                 progress.report({ message: `Complete` });
             });
@@ -322,7 +300,7 @@ async function askAndInstallScoop()
 /**
  * Executes a specified command with provided arguments.
  * 
- * @param {string?}  userPassword Password provided by the user for tool installation.
+ * @param {string|undefined} userPassword Password provided by the user for tool installation.
  * @param {string}   command      The command to execute.
  * @param {string[]} args         The arguments for the command.
  * 
@@ -338,7 +316,7 @@ function execCommand(userPassword, command, args)
 
     Logger.Info(`Executing: ${command} ${args.join(' ')}`);
 
-    const process = spawnSync(command, args, { input: Buffer.from(`${userPassword}\n`, "utf-8"), });
+    const process = spawnSync(command, args, { input: `${userPassword || ''}\n`, encoding: 'utf-8' });
 
     // Convert Buffer to String
     const stdout = process.stdout ? process.stdout.toString() : '';
@@ -367,7 +345,7 @@ function execCommand(userPassword, command, args)
  * Initiates the installation of a specified tool by using the appropriate tool manager.
  * 
  * @param {string}  toolName     The name of the tool to install.
- * @param {string?} userPassword Password provided by the user for tool installation.
+ * @param {string|undefined} userPassword Password provided by the user for tool installation.
  * 
  * @returns {Thenable<boolean>} I don't know what this is. I miss C where bool is literally an int.
  */
@@ -420,7 +398,8 @@ function installTool(toolName, userPassword)
         }
         catch (error)
         {
-            throw new Error(error.message);
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(message);
         }
 
         return isInstalled;
@@ -453,7 +432,7 @@ function askForRestart(restartReason)
  * If any tools fail to install, it notifies the user about those tools.
  * 
  * @param {string[]} tools        An array containing names of the tools to install.
- * @param {string?}  userPassword Password provided by the user for tool installation.
+ * @param {string|undefined} userPassword Password provided by the user for tool installation.
  */
 async function InstallMultipleTools(tools, userPassword)
 {
@@ -479,7 +458,7 @@ async function InstallMultipleTools(tools, userPassword)
         }
         catch (error)
         {
-            let failReason = `${error.message}`;
+            let failReason = error instanceof Error ? error.message : String(error);
             failedTools.push({tool, failReason});
         }
     }
@@ -522,7 +501,7 @@ function processInstallationOutputs(installedTools, failedTools)
 /**
  * Asks the user their sudo password to allow for tools installation.
  * 
- * @returns {Promise<string>} User's password
+ * @returns {Promise<string|undefined>} User's password
  */
 async function askForPassword()
 {
@@ -556,7 +535,7 @@ async function askAndInstallMultipleTools(tools)
     const selection = await vscode.window.showWarningMessage(`${toolList} not found. Would you like to install?`, 'Yes', 'No');
     if (selection === 'Yes')
     {
-        /** @type {string} */
+        /** @type {string|undefined} */
         let userPassword = undefined;
         if (CheckOs() === OsTypes.LINUX)
         {
@@ -591,9 +570,8 @@ async function SearchForTools()
         }
     }
 
-    let toolsToCheck = [BuildTools.GCC, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.MAKE, BuildTools.GIT];
+    let toolsToCheck = [BuildTools.GCC, BuildTools.CMAKE, BuildTools.NINJA, BuildTools.GIT];
     if (CheckOs() !== OsTypes.MACOS) toolsToCheck.push(BuildTools.GDB);
-    if (CheckOs() === OsTypes.WINDOWS) toolsToCheck.push(BuildTools.BBOX);
 
     let results = await Promise.all(toolsToCheck.map(tool => isToolInPath(tool)));
 
@@ -615,5 +593,6 @@ module.exports =
 {
     SearchForToolsCommand,
     SearchForTools,
-    resolveToolPath
+    resolveToolPath,
+    resolveSiblingToolPath
 };

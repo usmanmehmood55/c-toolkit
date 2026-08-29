@@ -36,8 +36,8 @@ class Logger
     parseStackInfo()
     {
         const err = new Error();
-        const stackLines = err.stack.split("\n");
-        const callerLine = stackLines[3];
+        const stackLines = (err.stack || '').split("\n");
+        const callerLine = stackLines[3] || '';
 
         // Extracting file name and function name
         const match = /at (.+) \((?:.*[\/\\])([^\/\\]+):\d+:\d+\)/.exec(callerLine) || [];

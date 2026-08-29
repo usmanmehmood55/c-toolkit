@@ -6,7 +6,8 @@ const Logger       = require('./Logger');
 const { SanitizeFileName, GetWorkspacePath } = require('./CommonUtils');
 const { IsProjectCpp } = require('./ProjectManager');
 
-let createComponentDisposable;
+/** @type {vscode.Disposable|undefined} */
+let createComponentDisposable = undefined;
 
 /**
  * Registers the 'createComponent' command in the extension.
@@ -31,7 +32,7 @@ class Component
     /**
      * Creates a new Component instance.
      * 
-     * @param {string?} name   The name of the component.
+     * @param {string}  name   The name of the component.
      * @param {boolean} mocked Indicates whether the component is mocked.
      * @param {boolean} tested Indicates whether the component is tested.
      */
@@ -67,20 +68,12 @@ async function SelectComponentProperties(component)
     }
 
     // Define rest of the properties for selection
-    const properties = 
+    /** @type {Array<vscode.QuickPickItem & {value: 'mocked'|'tested'}>} */
+    const properties =
     [
-        { label: 'Mocked', value: 'mocked' },
-        { label: 'Tested', value: 'tested' }
+        { label: 'Mocked', value: 'mocked', picked: component.mocked },
+        { label: 'Tested', value: 'tested', picked: component.tested }
     ];
-
-    // Pre-select items based on the component's current state
-    properties.forEach(prop => 
-    {
-        if (component[prop.value]) 
-        {
-            prop.picked = true;
-        }
-    });
 
     const selectedProperties = await vscode.window.showQuickPick(properties, {
         canPickMany: true,
@@ -94,17 +87,8 @@ async function SelectComponentProperties(component)
         return undefined;
     }
 
-    // Reset properties to false
-    properties.forEach(prop => 
-    {
-        component[prop.value] = false;
-    });
-
-    // Update the component properties based on selection
-    selectedProperties.forEach(selectedProp => 
-    {
-        component[selectedProp.value] = true;
-    });
+    component.mocked = selectedProperties.some(selectedProp => selectedProp.value === 'mocked');
+    component.tested = selectedProperties.some(selectedProp => selectedProp.value === 'tested');
 
     return component;
 }
@@ -188,7 +172,13 @@ function ComposeComponentFiles(component, componentDirPath, isCpp)
  */
 async function PrepareComponentDirectory(component)
 {
-    const componentDirPath = path.join(GetWorkspacePath(), 'components', component.name);
+    const workspacePath = GetWorkspacePath();
+    if (!workspacePath || !component.name)
+    {
+        return undefined;
+    }
+
+    const componentDirPath = path.join(workspacePath, 'components', component.name);
 
     if (fs.existsSync(componentDirPath))
     {
@@ -212,8 +202,14 @@ async function PrepareComponentDirectory(component)
  */
 async function RegisterComponentToMainCmake(component)
 {
+    const workspacePath = GetWorkspacePath();
+    if (!workspacePath || !component.name)
+    {
+        return undefined;
+    }
+
     // redundant because this check was moved to createNewComponent()
-    let rootCmakeFilePath = path.join(GetWorkspacePath(), 'CMakeLists.txt');
+    let rootCmakeFilePath = path.join(workspacePath, 'CMakeLists.txt');
     if (fs.existsSync(rootCmakeFilePath) === false)
     {
         Logger.Error(`Root CMakeLists.txt not found.`);
@@ -262,12 +258,16 @@ async function RegisterComponentToMainCmake(component)
  */
 async function createNewComponent()
 {
-    const isCpp = IsProjectCpp();
-
     let workspacePath = GetWorkspacePath();
     if (!workspacePath)
     {
         vscode.window.showErrorMessage("No folder open in the workspace");
+        return undefined;
+    }
+
+    const isCpp = IsProjectCpp();
+    if (isCpp === undefined)
+    {
         return undefined;
     }
 
@@ -278,10 +278,10 @@ async function createNewComponent()
         return undefined;
     }
 
-    let component = new Component(undefined, false, false);
+    let component = new Component('', false, false);
 
-    await SelectComponentProperties(component);
-    if (component.name === undefined) return undefined;
+    const selectedComponent = await SelectComponentProperties(component);
+    if (selectedComponent === undefined) return undefined;
 
     let componentDirPath = await PrepareComponentDirectory(component);
     if (componentDirPath === undefined) return undefined;

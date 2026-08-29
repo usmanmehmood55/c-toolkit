@@ -1,7 +1,13 @@
 // #include <stdio.h> // sorry force of habit, it looked weird without this.
 
+/**
+ * Parsed representation of the generated root CMakeLists.txt structure.
+ */
 class RootCMake
 {
+    /**
+     * Creates an empty root CMake representation.
+     */
     constructor()
     {
         /** @type {string?} */
@@ -53,12 +59,6 @@ class RootCMake
         this.ComponentForeachLines = null;
 
         /** @type {string?} */
-        this.GcovLinkComment = null;
-
-        /** @type {string[]?} */
-        this.GcovLinkLines = null;
-
-        /** @type {string?} */
         this.SizeCommandComment = null;
 
         /** @type {string[]?} */
@@ -85,7 +85,6 @@ class RootCMake
         this.ComponentBuildOptionsLines = parseComponentBuildOptionsLines(lines);
         this.AddExecutableLine          = findLineStartsWith(lines, "add_executable(");
         this.ComponentForeachLines      = parseComponentForeachLines(lines);
-        this.GcovLinkLines              = parseGcovLinkLines(lines);
         this.SizeCommandLines           = parseSizeCommandLines(lines);
     }
 }
@@ -165,24 +164,14 @@ function parseComponentForeachLines(lines)
  * @param {string[]} lines 
  * @returns {string[]?}
  */
-function parseGcovLinkLines(lines)
-{
-    const gcovLinkStart = findLineIndexStartsWith(lines, "if(CMAKE_BUILD_TYPE MATCHES Test)");
-    const gcovLinkEnd = findLineIndexStartsWith(lines, "endif()") + 1;
-
-    return (gcovLinkStart !== -1 && gcovLinkEnd !== 0) ?
-        extractBlockBetween(lines, gcovLinkStart, gcovLinkEnd) : null;
-}
-
-/**
- * 
- * @param {string[]} lines 
- * @returns {string[]?}
- */
 function parseSizeCommandLines(lines)
 {
-    const sizeCommandStart = findLineIndexStartsWith(lines, "add_custom_command(TARGET");
-    const sizeCommandEnd = findLineIndexStartsWith(lines, "POST_BUILD COMMAND size") + 1;
+    const sizeGuardStart = findLineIndexStartsWith(lines, "if(CMAKE_SIZE)");
+    const sizeCommandStart = sizeGuardStart !== -1 ? sizeGuardStart : findLineIndexStartsWith(lines, "add_custom_command(TARGET");
+    const sizeGuardEnd = sizeGuardStart !== -1 ?
+        lines.findIndex((line, index) => line === "endif()" && index > sizeGuardStart) : -1;
+    const legacySizeCommandEnd = lines.findIndex(line => line.startsWith("POST_BUILD COMMAND size")) + 1;
+    const sizeCommandEnd = sizeGuardEnd !== -1 ? sizeGuardEnd + 1 : legacySizeCommandEnd;
 
     return (sizeCommandStart !== -1 && sizeCommandEnd !== 0) ?
         extractBlockBetween(lines, sizeCommandStart, sizeCommandEnd) : null;
@@ -195,7 +184,7 @@ function parseSizeCommandLines(lines)
  * @param {number}   startIdx start index
  * @param {number}   endIdx   end index
  * 
- * @returns {string[]} block of lines or null
+ * @returns {string[]|null} block of lines or null
  */
 function extractBlockBetween(lines, startIdx, endIdx)
 {
