@@ -3,8 +3,7 @@
 A VSCode extension to help create, build, run, debug and test C and C++ projects
 using CMake.
 
-![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/UsmanMehmood.c-toolkit)
-![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/UsmanMehmood.c-toolkit)
+![Visual Studio Marketplace Downloads](https://img.shields.io/badge/Downloads-24%2C000-green)
 
 ## Features
 
