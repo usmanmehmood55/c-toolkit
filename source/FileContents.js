@@ -342,7 +342,7 @@ function ProjectCmake(isCpp)
 {
     const lang    = isCpp ? 'CXX' : 'C';
     const mainExt = isCpp ? 'cpp' : 'c';
-    const langVer = isCpp ? 'c++17' : 'c11';
+    const langFeature = isCpp ? 'cxx_std_17' : 'c_std_11';
 
     const content = 
 
@@ -356,19 +356,21 @@ function ProjectCmake(isCpp)
     ""                                                                                                 + "\n" +
     "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)"                                                            + "\n" +
     ""                                                                                                 + "\n" +
-    "# Common build flags"                                                                             + "\n" +
-    `set(CMAKE_${lang}_FLAGS         \"-Wall -Wextra -std=${langVer}\")`                               + '\n' +
-    ""                                                                                                 + "\n" +
-    "# Individual build type flags"                                                                    + "\n" +
-    `set(CMAKE_${lang}_FLAGS_RELEASE \"\${CMAKE_${lang}_FLAGS} -O2\")`                                 + "\n" +
-    `set(CMAKE_${lang}_FLAGS_DEBUG   \"\${CMAKE_${lang}_FLAGS} -O0 -g3\")`                             + "\n" +
-    `set(CMAKE_${lang}_FLAGS_TEST    \"\${CMAKE_${lang}_FLAGS} -O0 -g3 -D__test_build__\")`            + "\n" +
-    ""                                                                                                 + "\n" +
     "# List of components"                                                                             + "\n" +
     "set(COMPONENTS "                                                                                  + "\n" +
     "  )"                                                                                              + "\n" +
     ""                                                                                                 + "\n" +
     `add_executable(\${PROJECT_NAME} main.${mainExt})`                                                 + "\n" +
+    `target_compile_features(\${PROJECT_NAME} PRIVATE ${langFeature})`                                 + "\n" +
+    "if(MSVC)"                                                                                         + "\n" +
+    "    target_compile_options(${PROJECT_NAME} PRIVATE /W4)"                                         + "\n" +
+    "else()"                                                                                           + "\n" +
+    "    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra"                                 + "\n" +
+    "        \"$<$<CONFIG:Debug>:-O0;-g3>\""                                                         + "\n" +
+    "        \"$<$<CONFIG:Release>:-O2>\""                                                           + "\n" +
+    "        \"$<$<CONFIG:Test>:-O0;-g3>\")"                                                         + "\n" +
+    "endif()"                                                                                          + "\n" +
+    "target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Test>:__test_build__>)"             + "\n" +
     ""                                                                                                 + "\n" +
     "# Add component subdirectories using loop"                                                        + "\n" +
     "foreach(COMPONENT ${COMPONENTS})"                                                                 + "\n" +

@@ -2,7 +2,10 @@ const os     = require('os');
 const fs     = require('fs');
 const vscode = require('vscode');
 const path   = require('path');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
+
+/** @type {vscode.WorkspaceFolder|undefined} */
+let selectedWorkspaceFolder;
 
 /**
  * Enum for OS types
@@ -131,21 +134,15 @@ function GetWindowsToolCandidates(program)
  */
 function FindProgramPath(program)
 {
-    try
+    const lookupCommand = CheckOs() === OsTypes.WINDOWS ? 'where' : 'which';
+    const lookup = spawnSync(lookupCommand, [program], { encoding: 'utf-8', timeout: 5000 });
+    if (lookup.status === 0 && lookup.stdout)
     {
-        const which_or_where = CheckOs() === OsTypes.WINDOWS ? 'where' : 'which';
-        const path = execSync(`${which_or_where} ${program}`, { encoding: 'utf-8' }).trim();
-        return path;
+        return lookup.stdout.split(/\r?\n/).map(line => line.trim()).find(Boolean);
     }
-    catch (error)
-    {
-        if (CheckOs() !== OsTypes.WINDOWS)
-        {
-            return undefined;
-        }
 
-        return GetWindowsToolCandidates(program).find(eachCandidate => fs.existsSync(eachCandidate));
-    }
+    return CheckOs() === OsTypes.WINDOWS ?
+        GetWindowsToolCandidates(program).find(eachCandidate => fs.existsSync(eachCandidate)) : undefined;
 }
 
 /**
@@ -160,12 +157,45 @@ function FindProgramPath(program)
  */
 function GetWorkspacePath()
 {
-    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0)
+    const activeUri = vscode.window.activeTextEditor && vscode.window.activeTextEditor.document.uri;
+    const activeFolder = activeUri && vscode.workspace.getWorkspaceFolder(activeUri);
+    if (activeFolder)
     {
-        return vscode.workspace.workspaceFolders[0].uri.fsPath;
+        selectedWorkspaceFolder = activeFolder;
+        return activeFolder.uri.fsPath;
     }
 
+    const folders = vscode.workspace.workspaceFolders || [];
+    if (selectedWorkspaceFolder && folders.some(folder => folder.uri.toString() === selectedWorkspaceFolder.uri.toString()))
+    {
+        return selectedWorkspaceFolder.uri.fsPath;
+    }
+
+    if (folders.length === 1) return folders[0].uri.fsPath;
+
     return undefined;
+}
+
+/**
+ * Resolves a workspace folder, asking when a multi-root workspace is ambiguous.
+ * @returns {Promise<vscode.WorkspaceFolder|undefined>} Selected folder.
+ */
+async function SelectWorkspaceFolder()
+{
+    const existingPath = GetWorkspacePath();
+    if (existingPath)
+    {
+        return (vscode.workspace.workspaceFolders || []).find(folder => folder.uri.fsPath === existingPath);
+    }
+
+    const folders = vscode.workspace.workspaceFolders || [];
+    if (folders.length === 0) return undefined;
+
+    const selection = await vscode.window.showQuickPick(
+        folders.map(folder => ({ label: folder.name, description: folder.uri.fsPath, folder })),
+        { placeHolder: 'Choose the C/C++ project to use' });
+    selectedWorkspaceFolder = selection && selection.folder;
+    return selectedWorkspaceFolder;
 }
 
 module.exports =
@@ -176,5 +206,6 @@ module.exports =
     CheckOs,
     WrapSpacedComponents,
     FindProgramPath,
-    GetWorkspacePath
+    GetWorkspacePath,
+    SelectWorkspaceFolder
 };

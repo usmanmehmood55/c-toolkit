@@ -1,5 +1,21 @@
 # Change Log
 
+## Unreleased
+
+### Improvements
+
+- Added Workspace Trust and multi-root workspace support.
+- Builds can now be cancelled and executable targets are detected from CMake.
+- Tool installation now shows the exact command and no longer prompts on startup.
+- Linux tool installation now requests elevation in the integrated terminal.
+- Generated CMake uses target-based flags without duplication.
+- Reduced debugger requirements and packaged extension contents.
+
+### Fixes
+
+- Project and configuration operations no longer block the extension host.
+- Removed unused CMake parsing code.
+
 ## [v2.1.2](https://github.com/usmanmehmood55/c-toolkit/releases/tag/2.1.2)
 
 ### Features

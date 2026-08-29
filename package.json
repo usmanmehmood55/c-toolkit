@@ -20,6 +20,16 @@
         "onLanguage:c",
         "onLanguage:cpp"
     ],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": false,
+            "description": "Building and running C/C++ projects executes code and configuration from the workspace."
+        },
+        "virtualWorkspaces": {
+            "supported": false,
+            "description": "CMake toolchains and generated executables require a local filesystem."
+        }
+    },
     "contributes": {
         "commands": [
             {
@@ -78,8 +88,8 @@
         "check": "tsc --noEmit --project jsconfig.json",
         "lint": "eslint ."
     },
-    "extensionDependencies": [
-        "ms-vscode.cpptools-extension-pack",
+    "extensionPack": [
+        "ms-vscode.cpptools",
         "vadimcn.vscode-lldb"
     ],
     "devDependencies": {

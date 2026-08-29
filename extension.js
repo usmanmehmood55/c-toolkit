@@ -5,7 +5,7 @@ const ProjectManager         = require('./source/ProjectManager');
 const ToolsManager           = require('./source/ToolsManager');
 const Logger                 = require('./source/Logger');
 const RefreshConfigsCommand  = require('./source/ConfigManager');
-const { OutputModes }        = require('./source/BuildReporter');
+const { BuildReporter, OutputModes } = require('./source/BuildReporter');
 
 const BuildState      = buttonActions.BuildState;
 const BuildTypes      = buttonActions.BuildTypes;
@@ -18,6 +18,7 @@ let buildState = new BuildState(BuildTypes.DEBUG);
 function activate(context)
 {
     Logger.Info("C C++ Toolkit extension activating");
+    context.subscriptions.push(BuildReporter);
 
     const buttons = 
     [
@@ -38,7 +39,6 @@ function activate(context)
     RefreshConfigsCommand(context);
     ToolsManager.SearchForToolsCommand(context);
     SelectOutputModeCommand(context);
-    ToolsManager.SearchForTools();
 
     vscode.window.onDidChangeActiveColorTheme(e => // eslint-disable-line no-unused-vars
     {
@@ -65,9 +65,9 @@ function SelectOutputModeCommand(context)
     {
         const labels =
         {
-            [OutputModes.GUIDED]  : 'Guided — progress and concise stages',
-            [OutputModes.COMMANDS]: 'Commands — stages and reproducible commands',
-            [OutputModes.VERBOSE] : 'Verbose — complete build output',
+            [OutputModes.GUIDED]  : 'Guided: progress and concise stages',
+            [OutputModes.COMMANDS]: 'Commands: stages and reproducible commands',
+            [OutputModes.VERBOSE] : 'Verbose: complete build output',
         };
         const selection = await vscode.window.showQuickPick(Object.entries(labels).map(([value, label]) => ({ label, value })),
             { placeHolder: 'Choose how build activity is displayed' });

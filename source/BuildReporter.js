@@ -93,6 +93,12 @@ class BuildReporter
     {
         this.outputChannel.show(true);
     }
+
+    /** Releases the output channel when the extension is deactivated. */
+    dispose()
+    {
+        this.outputChannel.dispose();
+    }
 }
 
 /**

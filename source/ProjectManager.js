@@ -3,7 +3,7 @@ const path                 = require('path');
 const vscode               = require('vscode');
 const fileContents         = require('./FileContents');
 const Logger               = require('./Logger');
-const { SanitizeFileName, GetWorkspacePath } = require('./CommonUtils');
+const { SanitizeFileName } = require('./CommonUtils');
 
 /** @type {vscode.Disposable} */
 let CommandCreateCProject;
@@ -34,15 +34,16 @@ class Project
 /**
  * Reads the root CMakeLists.txt in the open workspace to decide if the
  * project is for C++ or C.
+ * @param {string|undefined} workspacePath Selected workspace path.
  * 
  * @returns {boolean|undefined} True if it's C++, False if C, undefined if it's unable to find.
  */
-function IsProjectCpp()
+function IsProjectCpp(workspacePath)
 {
     /** @type {boolean|undefined} */
     let isCpp = undefined;
 
-    const rootPath = GetWorkspacePath();
+    const rootPath = workspacePath;
     if (!rootPath)
     {
         const msg = 'No folder open in the workspace';
@@ -125,18 +126,12 @@ function CreateCppProjectCommand(context)
 /**
  * Composes a list of files to be created for a project.
  * 
- * @param {string}  projectDirPath  The directory path where the project files will be located.
- * @param {boolean} createDirectory Whether to create the .vscode directory.
+ * @param {string} projectDirPath The directory path where the project files will be located.
  * 
  * @returns {Array<{path: string, content: string}>} An array of file objects with path and content properties.
  */
-function ComposeVscodeFiles(projectDirPath, createDirectory = true)
+function ComposeVscodeFiles(projectDirPath)
 {
-    if (createDirectory)
-    {
-        fs.mkdirSync(path.join(projectDirPath, ".vscode"), { recursive: true });
-    }
-
     let files = 
     [
         { path: path.join(projectDirPath, ".vscode", "c_cpp_properties.json"), content: fileContents.CppPropertiesJson() },
@@ -228,7 +223,7 @@ async function PrepareProjectDirectory(project)
     }
 
     // Otherwise, create a folder of that name
-    fs.mkdirSync(projectDirPath, { recursive: true });
+    await fs.promises.mkdir(projectDirPath, { recursive: true });
 
     return projectDirPath;
 }
@@ -252,12 +247,13 @@ async function createNewProject(isCpp)
     /** @type {Array<{ path: string, content: string }>} */
     let files = [];
     let sourceFiles = ComposeSourceFiles(projectDirPath, isCpp);
+    await fs.promises.mkdir(path.join(projectDirPath, '.vscode'), { recursive: true });
     let vscodeFiles = ComposeVscodeFiles(projectDirPath);
 
     files = [...files, ...sourceFiles];
     files = [...files, ...vscodeFiles];
 
-    files.forEach(file => fs.writeFileSync(file.path, file.content));
+    await Promise.all(files.map(file => fs.promises.writeFile(file.path, file.content)));
 
     // Open the new project directory in VSCode
     const uri = vscode.Uri.file(projectDirPath);
