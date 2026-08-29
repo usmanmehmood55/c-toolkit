@@ -75,6 +75,7 @@
         ]
     },
     "scripts": {
+        "check": "tsc --noEmit --project jsconfig.json",
         "lint": "eslint ."
     },
     "extensionDependencies": [
@@ -84,6 +85,7 @@
     "devDependencies": {
         "@types/node": "20.2.5",
         "@types/vscode": "^1.81.0",
+        "@vscode/vsce": "3.9.2",
         "eslint": "^8.57.0",
         "eslint-plugin-jsdoc": "^50.2.2",
         "typescript": "^5.1.3"
