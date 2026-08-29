@@ -5,6 +5,8 @@
 ### Improvements
 
 - Added Workspace Trust and multi-root workspace support.
+- Added a one-time feedback invitation that can also be reopened from the
+  Command Palette.
 - Builds can now be cancelled and executable targets are detected from CMake.
 - Tool installation now shows the exact command and no longer prompts on startup.
 - Linux tool installation now requests elevation in the integrated terminal.
@@ -13,6 +15,7 @@
 
 ### Fixes
 
+- Build failures now open and focus detailed output automatically.
 - Project and configuration operations no longer block the extension host.
 - Removed unused CMake parsing code.
 

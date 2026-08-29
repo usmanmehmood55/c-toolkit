@@ -6,6 +6,7 @@ const { OsTypes, CheckOs, SelectWorkspaceFolder } = require('./CommonUtils');
 const { IsProjectCpp } = require('./ProjectManager');
 const { resolveToolPath, resolveSiblingToolPath } = require('./ToolsManager');
 const { BuildReporter } = require('./BuildReporter');
+const FeedbackManager = require('./FeedbackManager');
 
 const BUILD_DIR_NAME      = 'build';
 const CMAKE_LISTS_NAME    = 'CMakeLists.txt';
@@ -238,16 +239,12 @@ async function invokeBuild(buildState)
     {
         vscode.window.setStatusBarMessage(`$(check) ${buildState.type} build complete`, 5000);
         vscode.window.showInformationMessage(`${buildState.type} build completed successfully.`);
+        FeedbackManager.RecordSuccessfulBuild();
         return true;
     }
 
-    vscode.window.showErrorMessage(`${failedStage} failed: ${failureMessage}`, 'Show Details').then(action =>
-    {
-        if (action === 'Show Details')
-        {
-            BuildReporter.Show();
-        }
-    });
+    BuildReporter.Show(false);
+    vscode.window.showErrorMessage(`${failedStage} failed: ${failureMessage}. Build Output has been opened below.`);
     return false;
 }
 
