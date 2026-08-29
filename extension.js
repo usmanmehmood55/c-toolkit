@@ -5,6 +5,7 @@ const ProjectManager         = require('./source/ProjectManager');
 const ToolsManager           = require('./source/ToolsManager');
 const Logger                 = require('./source/Logger');
 const RefreshConfigsCommand  = require('./source/ConfigManager');
+const FeedbackManager        = require('./source/FeedbackManager');
 const { BuildReporter, OutputModes } = require('./source/BuildReporter');
 
 const BuildState      = buttonActions.BuildState;
@@ -19,6 +20,7 @@ function activate(context)
 {
     Logger.Info("C C++ Toolkit extension activating");
     context.subscriptions.push(BuildReporter);
+    FeedbackManager.Initialize(context);
 
     const buttons = 
     [
